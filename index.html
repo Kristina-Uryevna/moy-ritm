@@ -273,6 +273,16 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-vis
     </div>
 
     <div class="card">
+      <h2>Замеры</h2>
+      <div class="grid2">
+        <label class="f" for="nMeasDay">Каждую неделю в
+          <select id="nMeasDay"><option value="1">понедельник</option><option value="2">вторник</option><option value="3">среду</option><option value="4">четверг</option><option value="5">пятницу</option><option value="6">субботу</option><option value="0">воскресенье</option></select></label>
+        <label class="f" for="nMeasTime">Время<input id="nMeasTime" type="time"></label>
+      </div>
+      <div class="hint">Если к этому времени замер не внесён, бот напомнит.</div>
+    </div>
+
+    <div class="card">
       <h2>Уколы</h2>
       <button class="check" id="sTirz" aria-pressed="true"><span class="box">✓</span><span class="t"><span>Колю тирзепатид</span><small>влияет на калории, белок и день укола на «Сегодня»</small></span></button>
       <div class="grid2" id="tirzFields">
@@ -280,6 +290,7 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-vis
         <span></span>
         <label class="f" for="sDose1">Доза, уколы 1–4<input id="sDose1" type="text" placeholder="как на коробке"></label>
         <label class="f" for="sDose2">Доза с 5-го<input id="sDose2" type="text" placeholder="по назначению"></label>
+        <label class="f" for="nShotTime">Напомнить в день укола в<input id="nShotTime" type="time"></label>
       </div>
     </div>
 
@@ -293,6 +304,36 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-vis
         </div>
         <table class="sched" id="schedTable"></table>
         <div class="hint">По инструкции Табекса. Бросить курить — не позже 5-го дня. Если не получилось, курс прекращают и через 2–3 месяца начинают заново. Сверь с вкладышем в своей пачке.</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="row"><h2>Уведомления в боте</h2><span class="tag" id="notifState"></span></div>
+      <div id="notifNoServer" class="warnline" hidden>Сервер уведомлений ещё не подключён. Настройки сохранятся и заработают после подключения.</div>
+      <button class="check" id="nOn" aria-pressed="false"><span class="box">✓</span><span class="t"><span>Присылать напоминания</span><small>только о том, что ты ещё не отметила</small></span></button>
+      <div id="notifFields" class="list">
+        <div class="grp">Таблетки</div>
+        <div class="hint">По времени из списка на «Сегодня» (кнопка «Изменить»). Табекс — по его расписанию.</div>
+        <div class="grp">Еда — если приём не записан к</div>
+        <div class="grid2" style="grid-template-columns:repeat(3,1fr)">
+          <label class="f" for="nBreakfast">Завтрак<input id="nBreakfast" type="time"></label>
+          <label class="f" for="nLunch">Обед<input id="nLunch" type="time"></label>
+          <label class="f" for="nDinner">Ужин<input id="nDinner" type="time"></label>
+        </div>
+        <div class="grp">Вода</div>
+        <button class="check" id="nWaterOn" aria-pressed="true"><span class="box">✓</span><span class="t"><span>Напоминать про воду</span><small>если нет отметки дольше интервала; пока не выпита норма</small></span></button>
+        <div class="grid2" style="grid-template-columns:repeat(3,1fr)" id="waterFields">
+          <label class="f" for="nWaterEvery">Интервал<select id="nWaterEvery"><option value="60">1 ч</option><option value="90">1,5 ч</option><option value="120">2 ч</option><option value="180">3 ч</option></select></label>
+          <label class="f" for="nWaterFrom">С<input id="nWaterFrom" type="time"></label>
+          <label class="f" for="nWaterTo">До<input id="nWaterTo" type="time"></label>
+        </div>
+        <div class="grp">Вечер — если не отмечено к</div>
+        <div class="grid2">
+          <label class="f" for="nActivity">Движение<input id="nActivity" type="time"></label>
+          <label class="f" for="nFeeling">Самочувствие<input id="nFeeling" type="time"></label>
+        </div>
+        <button class="btn ghost" id="nTest">Прислать тестовое уведомление</button>
+        <div class="hint" id="nTestMsg"></div>
       </div>
     </div>
 
@@ -319,6 +360,8 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-vis
 
 <script>
 (function(){
+// ▼ Адрес сервера уведомлений (Cloudflare Worker). Пусто — уведомления выключены.
+const WORKER_URL='https://194-154-31-185.sslip.io:8443';
 const $=id=>document.getElementById(id);
 const DAYMS=864e5;
 const pad=n=>String(n).padStart(2,'0');
@@ -332,7 +375,9 @@ const fmt1=n=>String(Math.round(n*10)/10).replace('.',',');
 const GLASS=0.3;
 
 const DEFAULT_MEDS=[{id:'m1',name:'Сорбифер Дурулес',time:'08:00',note:'натощак за 30–60 мин до еды, запить водой или апельсиновым соком'},{id:'m2',name:'Витамин D',time:'13:00',note:'1 пшик во время еды, где есть жир'}];
-let settings={startWeight:150,height:175,goal1:110,goal2:80,age:'',act:1.375,onTirz:true,firstShot:'',dose1:'',dose2:'',quit:false,tabexStart:'',tabexTime:'08:00',kcalManual:'',protManual:'',meds:DEFAULT_MEDS};
+let settings={startWeight:150,height:175,goal1:110,goal2:80,age:'',act:1.375,onTirz:true,firstShot:'',dose1:'',dose2:'',quit:false,tabexStart:'',tabexTime:'08:00',kcalManual:'',protManual:'',meds:DEFAULT_MEDS,
+  notify:{on:false,breakfast:'09:30',lunch:'14:00',dinner:'19:00',waterOn:true,waterEvery:120,waterFrom:'09:00',waterTo:'21:00',activity:'22:00',feeling:'22:30',measDay:1,measTime:'10:00',shotTime:'10:00'}};
+const NOTIFY_DEFAULT=JSON.parse(JSON.stringify(settings.notify));
 let days={}, weeks={};
 let cur=key(new Date());
 let db=null;
@@ -340,7 +385,8 @@ let db=null;
 // ---------- storage ----------
 function lsGet(){try{const r=localStorage.getItem('ritm');return r?JSON.parse(r):null}catch(e){return null}}
 function lsSet(){try{localStorage.setItem('ritm',JSON.stringify({settings,days,weeks}))}catch(e){}}
-const saved=lsGet(); if(saved){settings=Object.assign(settings,saved.settings||{});days=saved.days||{};weeks=saved.weeks||{}}
+function mergeSettings(x){settings=Object.assign(settings,x||{});settings.notify=Object.assign({},NOTIFY_DEFAULT,settings.notify||{})}
+const saved=lsGet(); if(saved){mergeSettings(saved.settings);days=saved.days||{};weeks=saved.weeks||{}}
 
 const timers={}, busy={}, again={}, dirty={};
 function setStatus(t){$('status').textContent=t}
@@ -348,8 +394,17 @@ function setStatus(t){$('status').textContent=t}
 const tg=window.Telegram&&window.Telegram.WebApp;
 const cs=(tg&&tg.CloudStorage&&tg.isVersionAtLeast&&tg.isVersionAtLeast('6.9'))?tg.CloudStorage:null;
 const csKey=p=>p==='settings/main'?'settings':p.replace('days/','d_').replace('weeks/','w_');
+const pushQ={};let pushT=null;
+function pushServer(path,data){
+  if(!WORKER_URL||!tg||!tg.initData)return;
+  const k=csKey(path);if(k.startsWith('w_'))return;
+  if(k==='settings')data=Object.assign({},data,{glasses:targets().glasses});
+  pushQ[k]=data;clearTimeout(pushT);
+  pushT=setTimeout(()=>{const items=Object.entries(pushQ).map(([key,data])=>({key,data}));for(const k in pushQ)delete pushQ[k];
+    fetch(WORKER_URL.replace(/\/$/,'')+'/sync',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({initData:tg.initData,items})}).catch(()=>{})},1500);
+}
 async function writeDoc(path,dataFn){
-  lsSet();
+  lsSet(); pushServer(path,dataFn());
   if(!cs){setStatus('сохранено на телефоне');return}
   if(busy[path]){again[path]=dataFn;return}
   busy[path]=true;
@@ -554,8 +609,8 @@ function renderWater(D){
   const G=targets().glasses, n=Math.max(G,D.water);
   const wt=$('water');wt.innerHTML='';
   for(let i=1;i<=n;i++){const d=document.createElement('button');d.className='drop'+(i<=D.water?' on':'')+(i>G?' extra':'');
-    d.setAttribute('aria-label',i+' стаканов');d.onclick=()=>{D.water=D.water===i?i-1:i;saveDay(cur);renderToday()};wt.appendChild(d)}
-  const pl=document.createElement('button');pl.className='plusglass';pl.textContent='+ стакан';pl.onclick=()=>{D.water=(D.water||0)+1;saveDay(cur);renderToday()};wt.appendChild(pl);
+    d.setAttribute('aria-label',i+' стаканов');d.onclick=()=>{const was=D.water;D.water=D.water===i?i-1:i;if(D.water>was)D.waterAt=Date.now();saveDay(cur);renderToday()};wt.appendChild(d)}
+  const pl=document.createElement('button');pl.className='plusglass';pl.textContent='+ стакан';pl.onclick=()=>{D.water=(D.water||0)+1;D.waterAt=Date.now();saveDay(cur);renderToday()};wt.appendChild(pl);
   $('waterLbl').textContent=D.water+' из '+G+' · '+fmt1(D.water*GLASS)+' л из '+fmt1(G*GLASS);
 }
 
@@ -735,7 +790,7 @@ function renderCalc(){
 const sMap={sAge:'age',sHeight:'height',sStart:'startWeight',sGoal1:'goal1',sGoal2:'goal2',sAct:'act',sShot:'firstShot',sDose1:'dose1',sDose2:'dose2',sTabex:'tabexStart',sTabexTime:'tabexTime',sKcalM:'kcalManual',sProtM:'protManual'};
 const NUMS=['age','height','startWeight','goal1','goal2','act','kcalManual','protManual'];
 function fillSettings(){for(const [id,f] of Object.entries(sMap)){const el=$(id);if(document.activeElement!==el)el.value=settings[f]??''}
-  if(!$('sAct').value)$('sAct').value='1.375'; renderCalc()}
+  if(!$('sAct').value)$('sAct').value='1.375'; fillNotify(); renderCalc()}
 let sTimer=null;
 function onSetting(){
   for(const [id,f] of Object.entries(sMap)){const v=$(id).value;settings[f]=NUMS.includes(f)?(v===''?'':parseFloat(v)):v}
@@ -743,6 +798,23 @@ function onSetting(){
   clearTimeout(sTimer);sTimer=setTimeout(()=>{saveSettingsNow();sTimer=null;$('settingsSaved').textContent='сохранено'},700);
 }
 Object.keys(sMap).forEach(id=>{$(id).addEventListener('input',onSetting);$(id).addEventListener('change',onSetting)});
+const nMap={nBreakfast:'breakfast',nLunch:'lunch',nDinner:'dinner',nWaterEvery:'waterEvery',nWaterFrom:'waterFrom',nWaterTo:'waterTo',nActivity:'activity',nFeeling:'feeling',nMeasDay:'measDay',nMeasTime:'measTime',nShotTime:'shotTime'};
+function fillNotify(){const n=settings.notify;for(const [id,f] of Object.entries(nMap)){const el=$(id);if(document.activeElement!==el)el.value=n[f]??''}
+  $('nOn').setAttribute('aria-pressed',!!n.on);$('nWaterOn').setAttribute('aria-pressed',!!n.waterOn);
+  $('notifFields').hidden=!n.on;$('waterFields').hidden=!n.waterOn;
+  $('notifNoServer').hidden=!!WORKER_URL;$('notifState').textContent=!WORKER_URL?'не подключено':n.on?'включены':'выключены'}
+function onNotify(){const n=settings.notify;for(const [id,f] of Object.entries(nMap)){const v=$(id).value;n[f]=['waterEvery','measDay'].includes(f)?+v:v}fillNotify();onSetting()}
+Object.keys(nMap).forEach(id=>{$(id).addEventListener('input',onNotify);$(id).addEventListener('change',onNotify)});
+$('nOn').onclick=()=>{settings.notify.on=!settings.notify.on;fillNotify();onSetting()};
+$('nWaterOn').onclick=()=>{settings.notify.waterOn=!settings.notify.waterOn;fillNotify();onSetting()};
+$('nTest').onclick=async()=>{
+  const m=$('nTestMsg');
+  if(!WORKER_URL){m.textContent='Сначала подключи сервер уведомлений.';return}
+  if(!tg||!tg.initData){m.textContent='Открой приложение через кнопку в боте.';return}
+  m.textContent='Отправляю…';
+  try{const r=await fetch(WORKER_URL.replace(/\/$/,'')+'/test',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({initData:tg.initData})});
+    const j=await r.json();m.textContent=j.ok?'Готово — проверь чат с ботом.':'Не получилось: '+(j.error||'ошибка сервера');}
+  catch(e){m.textContent='Сервер не отвечает. Проверь адрес или интернет.'}};
 $('sTirz').onclick=()=>{settings.onTirz=settings.onTirz===false;onSetting()};
 $('sQuit').onclick=()=>{settings.quit=!settings.quit;if(settings.quit&&!settings.tabexStart){settings.tabexStart=key(new Date());$('sTabex').value=settings.tabexStart}onSetting()};
 
@@ -779,10 +851,10 @@ else{
     let left=chunks.length;
     chunks.forEach(ch=>cs.getItems(ch,(e,vals)=>{
       if(!e&&vals){for(const [k,v] of Object.entries(vals)){if(!v)continue;let x;try{x=JSON.parse(v)}catch(_){continue}
-        if(k==='settings'){settings=Object.assign(settings,x)}
+        if(k==='settings'){mergeSettings(x)}
         else if(k.startsWith('d_')){const id=k.slice(2);if(dirty[id])continue;delete x.date;days[id]=Object.assign(day(id),x)}
         else if(k.startsWith('w_')){const id=k.slice(2);delete x.week;weeks[id]=x}}}
-      if(--left===0){lsSet();setStatus('синхронизировано');if(!(typing()||measKey||panelMeal))renderAll()}
+      if(--left===0){lsSet();setStatus('синхронизировано');const t=key(new Date());pushServer('settings/main',JSON.parse(JSON.stringify(settings)));if(days[t])pushServer('days/'+t,Object.assign({date:t},days[t]));if(!(typing()||measKey||panelMeal))renderAll()}
     }));
   });
 }
