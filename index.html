@@ -1,0 +1,792 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<title>Мой ритм</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700&family=Manrope:wght@400;500;600;700&display=swap">
+<style>
+:root{
+  --bg:#E4ECEA; --surface:#FFFFFF; --surface2:#EDF3F1; --ink:#07130F; --muted:#34463F; --line:#A9BFB8;
+  --accent:#005C57; --accent-ink:#FFFFFF; --accent-soft:#C4E6E1;
+  --sun:#8F4F00; --sun-soft:#FFE2B8; --iron:#9E1F14; --iron-soft:#FAD3CE; --ok:#136B32;
+  --display:"Unbounded","Manrope",system-ui,sans-serif; --body:"Manrope",system-ui,-apple-system,"Segoe UI",sans-serif;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  color-scheme:dark; --bg:#030807; --surface:#0E1916; --surface2:#172622; --ink:#F4FBF9; --muted:#BFD3CD;
+  --line:#3E5751; --accent:#4FE0D5; --accent-ink:#00201D; --accent-soft:#0F4A45;
+  --sun:#FFC166; --sun-soft:#4A3510; --iron:#FF8F83; --iron-soft:#4D1D18; --ok:#6EE69A;}}
+:root[data-theme="dark"]{
+  color-scheme:dark; --bg:#030807; --surface:#0E1916; --surface2:#172622; --ink:#F4FBF9; --muted:#BFD3CD;
+  --line:#3E5751; --accent:#4FE0D5; --accent-ink:#00201D; --accent-soft:#0F4A45;
+  --sun:#FFC166; --sun-soft:#4A3510; --iron:#FF8F83; --iron-soft:#4D1D18; --ok:#6EE69A;}
+html{color-scheme:light}*{box-sizing:border-box}
+body{margin:0;-webkit-tap-highlight-color:transparent}
+[hidden]{display:none!important}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.45;padding:0 16px 96px;font-variant-numeric:tabular-nums}
+.wrap{max-width:520px;margin:0 auto;display:flex;flex-direction:column;gap:14px;padding-block:16px}
+section.wrap{padding:0}
+h1,h2{font-family:var(--display);font-weight:700;margin:0;text-wrap:balance;letter-spacing:-.01em}
+h1{font-size:22px}
+h2{font-size:15px}
+.eyebrow{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:700}
+.top{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.datebar{display:flex;align-items:center;gap:6px}
+.iconbtn{width:38px;height:38px;border-radius:12px;border:1.5px solid var(--muted);background:var(--surface);color:var(--ink);font-size:18px;cursor:pointer}
+.card{background:var(--surface);border-radius:18px;padding:16px;display:flex;flex-direction:column;gap:12px;border:1.5px solid var(--line)}
+.hint{font-size:13px;color:var(--muted)}
+.banner{border-radius:14px;padding:12px 14px;font-size:14px}
+.banner.shot{background:var(--accent-soft)}
+.banner.warn{background:var(--sun-soft)}
+.banner b{display:block}
+.row{display:flex;align-items:center;gap:10px;justify-content:space-between}
+.check{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:14px;background:var(--surface2);cursor:pointer;border:2px solid transparent;width:100%;text-align:left;color:var(--ink);font:inherit}
+.check .box{flex:none;width:26px;height:26px;border-radius:8px;border:2.5px solid var(--ink);display:grid;place-items:center;font-size:15px;color:transparent}
+.check[aria-pressed="true"]{border-color:var(--accent)}
+.check[aria-pressed="true"] .box{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.check .t{flex:1;min-width:0}
+.check .t small{display:block;color:var(--muted);font-size:12.5px}
+.tag{font-size:11px;font-weight:700;padding:3px 8px;border-radius:99px;background:var(--accent-soft);color:var(--accent);white-space:nowrap}
+.tag.sun{background:var(--sun-soft);color:var(--sun)}
+.pill{border:1.5px solid var(--muted);background:var(--surface2);color:var(--ink);border-radius:10px;padding:7px 10px;font:inherit;font-weight:600;font-size:13px;cursor:pointer}
+.pill[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.counter{display:flex;align-items:center;gap:8px}
+.counter button{width:40px;height:40px;border-radius:12px;border:1.5px solid var(--muted);background:var(--surface2);color:var(--ink);font-size:20px;cursor:pointer}
+.counter .v{min-width:44px;text-align:center;font-family:var(--display);font-size:18px}
+.drops{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.drop{width:30px;height:36px;border-radius:8px 8px 12px 12px;border:2px solid var(--accent);background:transparent;cursor:pointer;padding:0}
+.drop.on{background:var(--accent)}
+.drop.extra{border-style:dashed}
+.plusglass{height:36px;border-radius:10px;border:2px dashed var(--accent);background:transparent;color:var(--accent);font:inherit;font-weight:700;font-size:13px;padding:0 10px;cursor:pointer}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.scale{display:flex;gap:6px;flex-wrap:wrap}
+.scale .pill{flex:1 1 auto}
+input,textarea,select{font:inherit;color:var(--ink);background:var(--surface2);border:1.5px solid var(--muted);border-radius:12px;padding:10px 12px;width:100%}
+textarea{min-height:64px;resize:vertical}
+label.f{display:flex;flex-direction:column;gap:6px;font-size:13px;color:var(--muted);font-weight:600}
+.lbl{font-size:13px;color:var(--muted);font-weight:600}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.btn{border:0;border-radius:14px;padding:12px 16px;background:var(--accent);color:var(--accent-ink);font:inherit;font-weight:700;cursor:pointer}
+.btn.ghost{background:var(--surface2);color:var(--ink);border:1.5px solid var(--muted)}
+.btnrow{display:flex;gap:8px}.btnrow .btn{flex:1}
+button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-visible{outline:3px solid var(--sun);outline-offset:2px}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.stat{background:var(--surface2);border:1px solid var(--line);border-radius:14px;padding:10px;display:flex;flex-direction:column;gap:2px}
+.stat .n{font-family:var(--display);font-size:19px}
+.stat .l{font-size:12px;color:var(--muted)}
+.chart{width:100%;height:auto;display:block}
+.chart text{fill:var(--muted);font-size:10px;font-family:var(--body)}
+.nav{position:fixed;left:0;right:0;bottom:0;background:var(--surface);border-top:1.5px solid var(--line);display:flex;justify-content:center;padding:8px 12px calc(8px + env(safe-area-inset-bottom,0px));z-index:5}
+.nav .in{display:flex;gap:6px;max-width:520px;width:100%}
+.nav button{flex:1;border:0;background:transparent;color:var(--muted);font:inherit;font-weight:700;font-size:13px;padding:10px 4px;border-radius:12px;cursor:pointer}
+.nav button[aria-current="page"]{background:var(--accent);color:var(--accent-ink)}
+.mgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.mtable{width:100%;border-collapse:collapse;font-size:14px;white-space:nowrap}
+.mtable th,.mtable td{padding:8px 6px;border-top:1px solid var(--line);text-align:right}
+.mtable th:first-child,.mtable td:first-child{text-align:left;position:sticky;left:0;background:var(--surface)}
+.mtable thead th{border-top:0;font-size:12px;color:var(--muted);font-weight:700}
+.mtable thead button{border:0;background:none;color:var(--accent);font:inherit;font-weight:700;cursor:pointer;padding:0;text-decoration:underline}
+.down{color:var(--ok);font-weight:700}.up{color:var(--iron);font-weight:700}
+.status{font-size:12px;color:var(--muted);text-align:right}
+.linkbtn{border:0;background:none;color:var(--accent);font:inherit;font-weight:700;font-size:13px;cursor:pointer;padding:4px}
+.totals{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.tot{display:flex;flex-direction:column;gap:6px}
+.tot .n{font-family:var(--display);font-size:20px}
+.tot .n small{font-family:var(--body);font-size:13px;color:var(--muted);font-weight:600}
+.bar{height:8px;border-radius:99px;background:var(--surface2);border:1px solid var(--line);overflow:hidden}
+.bar i{display:block;height:100%;background:var(--accent);border-radius:99px}
+.bar.over i{background:var(--sun)}
+.list{display:flex;flex-direction:column;gap:6px}
+.item{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:12px;background:var(--surface2)}
+.item .t{flex:1;min-width:0}
+.item .t small{display:block;color:var(--muted);font-size:12.5px}
+.item .k{font-weight:700;white-space:nowrap;text-align:right}
+.item .k small{display:block;font-weight:600;color:var(--muted);font-size:12px}
+.x{border:0;background:none;color:var(--muted);font-size:20px;line-height:1;cursor:pointer;padding:2px 6px}
+.grp{font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+.mealbtns{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.mealbtns .pill{padding:10px 4px}
+.panel{display:flex;flex-direction:column;gap:12px;padding:12px;border-radius:14px;border:2px solid var(--accent);background:var(--surface2)}
+.panel input,.panel textarea{background:var(--surface)}
+.medrow{display:grid;grid-template-columns:110px 1fr;gap:8px;padding:10px;border-radius:12px;background:var(--surface2);border:1px solid var(--line)}
+.medrow .nm{grid-column:1 / -1;display:grid;grid-template-columns:1fr 36px;gap:8px}
+.medrow input{background:var(--surface)}
+.warnline{font-size:13px;background:var(--sun-soft);color:var(--ink);border-radius:10px;padding:8px 10px}
+.sched{width:100%;border-collapse:collapse;font-size:13.5px}
+.sched td{padding:6px 4px;border-top:1px solid var(--line)}
+.sched tr.now td{font-weight:700;color:var(--accent)}
+.facts{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:4px;font-size:14px}
+@media (prefers-reduced-motion:no-preference){.check,.pill,.drop{transition:background .15s,border-color .15s}}
+@media (max-width:380px){.stats{grid-template-columns:repeat(2,1fr)}.mealbtns{grid-template-columns:repeat(2,1fr)}}
+</style>
+</head>
+<body>
+
+<div class="wrap" id="app">
+  <div class="top">
+    <div>
+      <div class="eyebrow" id="eyebrow">Мой ритм</div>
+      <h1 id="title">Сегодня</h1>
+    </div>
+    <div class="status" id="status">загрузка…</div>
+  </div>
+
+  <!-- TODAY -->
+  <section id="v-today" class="wrap">
+    <div class="row">
+      <div class="datebar">
+        <button class="iconbtn" id="prev" aria-label="Предыдущий день">‹</button>
+        <strong id="dateLabel"></strong>
+        <button class="iconbtn" id="next" aria-label="Следующий день">›</button>
+      </div>
+      <button class="pill" id="toToday">Сегодня</button>
+    </div>
+    <div id="banners" class="wrap" style="padding:0;gap:8px"></div>
+
+    <div class="card">
+      <div class="row"><h2>Таблетки и укол</h2><button class="linkbtn" id="medEditBtn">Изменить</button></div>
+      <div id="meds" class="list"></div>
+      <div id="medEditor" class="list" hidden></div>
+    </div>
+
+    <div class="card" id="tabexCard" hidden>
+      <div class="row"><h2 id="tabexTitle">Табекс</h2><span class="tag sun" id="tabexTag"></span></div>
+      <div id="tabexList" class="list"></div>
+      <div class="hint" id="tabexHint"></div>
+    </div>
+
+    <div class="card">
+      <div class="row"><h2>Еда</h2><span class="hint">ориентир: ½ овощи · ¼ белок · ¼ гарнир</span></div>
+      <div class="totals">
+        <div class="tot"><span class="n" id="kcalN">0</span><div class="bar" id="kcalBar"><i></i></div></div>
+        <div class="tot"><span class="n" id="protN">0</span><div class="bar" id="protBar"><i></i></div></div>
+      </div>
+      <div id="foodWarn" class="warnline" hidden></div>
+      <div class="mealbtns" id="mealBtns"></div>
+      <div class="panel" id="foodPanel" hidden>
+        <div class="row"><h2 id="panelTitle">Завтрак</h2><button class="x" id="panelClose" aria-label="Закрыть">×</button></div>
+        <div class="grid2">
+          <label class="f" for="foodKcal">Калории<input id="foodKcal" type="number" inputmode="numeric" placeholder="ккал"></label>
+          <label class="f" for="foodProt">Белок, г<input id="foodProt" type="number" inputmode="numeric" placeholder="г"></label>
+        </div>
+        <div class="lbl">Голод до еды</div>
+        <div class="scale" id="hungerPick"></div>
+        <div class="lbl">Сытость после еды</div>
+        <div class="scale" id="satPick"></div>
+        <button class="btn" id="foodAdd">+ Сохранить</button>
+      </div>
+      <div id="foodList" class="list"></div>
+    </div>
+
+    <div class="card">
+      <div class="row"><h2>Вода</h2><span class="hint" id="waterLbl"></span></div>
+      <div class="drops" id="water"></div>
+      <div class="hint">Один стакан = 0,3 л. Нажми на стакан, чтобы отметить до него.</div>
+    </div>
+
+    <div class="card">
+      <div class="row"><h2>Движение</h2><span class="hint" id="actTotal"></span></div>
+      <div class="grp">Что</div>
+      <div class="chips" id="actType"></div>
+      <div class="grp">Сколько</div>
+      <div class="chips" id="actDur"></div>
+      <button class="btn" id="actAdd">Добавить</button>
+      <div id="actList" class="list"></div>
+    </div>
+
+    <div class="card" id="cigCard" hidden>
+      <div class="row"><h2>Сигареты</h2><span class="hint" id="cigHint"></span></div>
+      <div class="row"><span>Выкурила за день</span>
+        <div class="counter"><button id="cigMinus" aria-label="Меньше">−</button><span class="v" id="cigV">—</span><button id="cigPlus" aria-label="Больше">+</button></div></div>
+    </div>
+
+    <div class="card">
+      <h2>Самочувствие</h2>
+      <div class="lbl">Энергия</div>
+      <div class="scale" id="energy"></div>
+      <div class="lbl">Тошнота / живот</div>
+      <div class="scale" id="nausea"></div>
+      <label class="f" for="note">Заметка дня
+        <textarea id="note" placeholder="Что помогло, что мешало, как спала"></textarea></label>
+    </div>
+  </section>
+
+  <!-- PROGRESS -->
+  <section id="v-progress" class="wrap" hidden>
+    <div class="card">
+      <div class="row"><h2>Вес</h2><span class="hint" id="weightSummary"></span></div>
+      <svg class="chart" id="chart" viewBox="0 0 340 190" role="img" aria-label="График веса"></svg>
+      <p class="hint" style="margin:0">Смотри на линию за месяц, а не на цифру одного утра. Колебания ±1 кг за день — это вода.</p>
+    </div>
+
+    <div class="card">
+      <div class="row"><h2>Замеры</h2><button class="btn" id="measAddBtn" style="padding:9px 14px">+ Добавить замер</button></div>
+      <div class="panel" id="measPanel" hidden>
+        <label class="f" for="measDate">Дата замера<input id="measDate" type="date"></label>
+        <p class="hint" style="margin:0">Утром, до еды, в белье. Лента горизонтально, прилегает, но не сдавливает. Руку и ногу — всегда с одной стороны.</p>
+        <div class="mgrid" id="measGrid"></div>
+        <div class="btnrow"><button class="btn ghost" id="measCancel">Отмена</button><button class="btn" id="measSave">Сохранить замер</button></div>
+      </div>
+      <div class="chips" id="zonePick"></div>
+      <svg class="chart" id="zoneChart" viewBox="0 0 340 170" role="img" aria-label="График объёмов"></svg>
+      <div class="row"><span class="grp">История</span><span class="hint" id="measSummary"></span></div>
+      <div style="overflow-x:auto"><table class="mtable" id="measTable"></table></div>
+    </div>
+
+    <div class="card">
+      <h2>Последние 7 дней</h2>
+      <div class="stats" id="week"></div>
+    </div>
+
+    <div class="card">
+      <div class="row">
+        <h2>Разбор недели</h2>
+        <div class="datebar"><button class="iconbtn" id="wkPrev" aria-label="Прошлая неделя">‹</button><button class="iconbtn" id="wkNext" aria-label="Следующая неделя">›</button></div>
+      </div>
+      <div class="hint" id="wkLabel"></div>
+      <ul class="facts" id="wkFacts"></ul>
+      <label class="f" for="wkGood">Что получилось на этой неделе<textarea id="wkGood" placeholder="Даже мелочь: 5 прогулок, воду пила, не сорвалась вечером"></textarea></label>
+      <label class="f" for="wkHard">Что мешало<textarea id="wkHard" placeholder="Усталость, смены, тошнота после укола, праздник"></textarea></label>
+      <label class="f" for="wkNextStep">Один шаг на следующую неделю<textarea id="wkNextStep" placeholder="Один. Конкретный. Например: белок на завтрак каждый день"></textarea></label>
+    </div>
+  </section>
+
+  <!-- SETTINGS -->
+  <section id="v-plan" class="wrap" hidden>
+    <div class="card">
+      <div class="row"><h2>Мои данные</h2><span class="hint" id="settingsSaved"></span></div>
+      <div class="grid2">
+        <label class="f" for="sAge">Возраст<input id="sAge" type="number" inputmode="numeric" placeholder="лет"></label>
+        <label class="f" for="sHeight">Рост, см<input id="sHeight" type="number" inputmode="numeric"></label>
+        <label class="f" for="sStart">Стартовый вес, кг<input id="sStart" type="number" step="0.1" inputmode="decimal"></label>
+        <label class="f" for="sGoal1">Цель на год, кг<input id="sGoal1" type="number" step="0.1" inputmode="decimal"></label>
+        <label class="f" for="sGoal2">Дальняя цель, кг<input id="sGoal2" type="number" step="0.1" inputmode="decimal"></label>
+        <label class="f" for="sAct">Активность
+          <select id="sAct">
+            <option value="1.2">Почти не двигаюсь</option>
+            <option value="1.375">Прогулки каждый день</option>
+            <option value="1.55">Прогулки + спорт 3–4 раза</option>
+          </select></label>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Уколы</h2>
+      <button class="check" id="sTirz" aria-pressed="true"><span class="box">✓</span><span class="t"><span>Колю тирзепатид</span><small>влияет на калории, белок и день укола на «Сегодня»</small></span></button>
+      <div class="grid2" id="tirzFields">
+        <label class="f" for="sShot">Дата первого укола<input id="sShot" type="date"></label>
+        <span></span>
+        <label class="f" for="sDose1">Доза, уколы 1–4<input id="sDose1" type="text" placeholder="как на коробке"></label>
+        <label class="f" for="sDose2">Доза с 5-го<input id="sDose2" type="text" placeholder="по назначению"></label>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Курение</h2>
+      <button class="check" id="sQuit" aria-pressed="false"><span class="box">✓</span><span class="t"><span>Бросаю курить</span><small>появятся счётчик сигарет и расписание Табекса</small></span></button>
+      <div id="quitFields" class="list" hidden>
+        <div class="grid2">
+          <label class="f" for="sTabex">День 1 Табекса<input id="sTabex" type="date"></label>
+          <label class="f" for="sTabexTime">Первая таблетка<input id="sTabexTime" type="time"></label>
+        </div>
+        <table class="sched" id="schedTable"></table>
+        <div class="hint">По инструкции Табекса. Бросить курить — не позже 5-го дня. Если не получилось, курс прекращают и через 2–3 месяца начинают заново. Сверь с вкладышем в своей пачке.</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="row"><h2>Мой расчёт</h2><span class="tag" id="calcMode"></span></div>
+      <div id="calcEmpty" class="warnline" hidden>Укажи возраст и рост — посчитаю калории, белок и воду.</div>
+      <div class="stats" id="calcStats"></div>
+      <div id="calcCompare" class="hint"></div>
+      <p class="hint" style="margin:0">Формула Миффлина — Сан Жеора от твоего последнего веса: цифры сами уменьшаются, когда уходят килограммы. Это ориентир, а не назначение.</p>
+      <div class="grp">Если врач назвал свои цифры</div>
+      <div class="grid2">
+        <label class="f" for="sKcalM">Ккал в день<input id="sKcalM" type="number" inputmode="numeric" placeholder="авто"></label>
+        <label class="f" for="sProtM">Белок, г<input id="sProtM" type="number" inputmode="numeric" placeholder="авто"></label>
+      </div>
+    </div>
+  </section>
+</div>
+
+<nav class="nav" aria-label="Разделы"><div class="in">
+  <button data-v="today" aria-current="page">Сегодня</button>
+  <button data-v="progress">Прогресс</button>
+  <button data-v="plan">Настройки</button>
+</div></nav>
+
+<script>
+(function(){
+const $=id=>document.getElementById(id);
+const DAYMS=864e5;
+const pad=n=>String(n).padStart(2,'0');
+const key=d=>d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
+const parse=k=>{const [y,m,d]=k.split('-').map(Number);return new Date(y,m-1,d)};
+const addDays=(k,n)=>key(new Date(parse(k).getFullYear(),parse(k).getMonth(),parse(k).getDate()+n));
+const diffDays=(a,b)=>Math.round((parse(a)-parse(b))/DAYMS);
+const MON=['января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря'];
+const WD=['вс','пн','вт','ср','чт','пт','сб'];
+const fmt1=n=>String(Math.round(n*10)/10).replace('.',',');
+const GLASS=0.3;
+
+const DEFAULT_MEDS=[{id:'m1',name:'Сорбифер Дурулес',time:'08:00',note:'натощак за 30–60 мин до еды, запить водой или апельсиновым соком'},{id:'m2',name:'Витамин D',time:'13:00',note:'1 пшик во время еды, где есть жир'}];
+let settings={startWeight:150,height:175,goal1:110,goal2:80,age:'',act:1.375,onTirz:true,firstShot:'',dose1:'',dose2:'',quit:false,tabexStart:'',tabexTime:'08:00',kcalManual:'',protManual:'',meds:DEFAULT_MEDS};
+let days={}, weeks={};
+let cur=key(new Date());
+let db=null;
+
+// ---------- storage ----------
+function lsGet(){try{const r=localStorage.getItem('ritm');return r?JSON.parse(r):null}catch(e){return null}}
+function lsSet(){try{localStorage.setItem('ritm',JSON.stringify({settings,days,weeks}))}catch(e){}}
+const saved=lsGet(); if(saved){settings=Object.assign(settings,saved.settings||{});days=saved.days||{};weeks=saved.weeks||{}}
+
+const timers={}, busy={}, again={}, dirty={};
+function setStatus(t){$('status').textContent=t}
+// Telegram CloudStorage: данные хранятся в облаке Telegram, привязаны к твоему аккаунту
+const tg=window.Telegram&&window.Telegram.WebApp;
+const cs=(tg&&tg.CloudStorage&&tg.isVersionAtLeast&&tg.isVersionAtLeast('6.9'))?tg.CloudStorage:null;
+const csKey=p=>p==='settings/main'?'settings':p.replace('days/','d_').replace('weeks/','w_');
+async function writeDoc(path,dataFn){
+  lsSet();
+  if(!cs){setStatus('сохранено на телефоне');return}
+  if(busy[path]){again[path]=dataFn;return}
+  busy[path]=true;
+  const val=JSON.stringify(dataFn());
+  if(val.length>4096){setStatus('запись слишком большая, сохранено только на телефоне');busy[path]=false;return}
+  await new Promise(res=>cs.setItem(csKey(path),val,(err)=>{setStatus(err?'не сохранилось в облако':'сохранено');res()}));
+  busy[path]=false;
+  if(again[path]){const f=again[path];again[path]=null;await writeDoc(path,f)}
+}
+function saveDay(k){
+  lsSet(); setStatus('сохраняю…'); dirty[k]=true;
+  clearTimeout(timers[k]); timers[k]=setTimeout(async()=>{await writeDoc('days/'+k,()=>Object.assign({date:k},days[k]));dirty[k]=false},600);
+}
+function saveWeek(k){
+  lsSet(); setStatus('сохраняю…'); dirty['w'+k]=true;
+  clearTimeout(timers['w'+k]); timers['w'+k]=setTimeout(async()=>{await writeDoc('weeks/'+k,()=>Object.assign({week:k},weeks[k]));dirty['w'+k]=false},800);
+}
+function saveSettingsNow(){lsSet();writeDoc('settings/main',()=>JSON.parse(JSON.stringify(settings)))}
+function day(k){if(!days[k])days[k]={meds:{},food:[],acts:[],water:0,cigs:null,energy:null,nausea:null,weight:null,note:'',tabex:{}};const D=days[k];
+  if(!D.food)D.food=[]; if(!D.meds)D.meds={}; if(!D.tabex||typeof D.tabex!=='object')D.tabex={};
+  if(!D.acts){D.acts=[];if(D.walk>0)D.acts.push({type:'Прогулка с собакой',min:D.walk})}
+  return D}
+
+// ---------- calculator ----------
+function curWeight(){const ks=Object.keys(days).filter(k=>days[k].weight).sort();return ks.length?days[ks[ks.length-1]].weight:(+settings.startWeight||150)}
+const r50=x=>Math.round(x/50)*50, r5=x=>Math.round(x/5)*5;
+function bmiCat(b){return b<18.5?'ниже нормы':b<25?'норма':b<30?'избыточный вес':b<35?'ожирение I ст.':b<40?'ожирение II ст.':'ожирение III ст.'}
+function calcFor(tirz){
+  const w=curWeight(),h=+settings.height,a=+settings.age,f=+settings.act||1.375;
+  if(!h||!w)return null;
+  const bmi=w/Math.pow(h/100,2);
+  if(!a)return {bmi,w};
+  const bmr=10*w+6.25*h-5*a-161, tdee=bmr*f;
+  const ibw=45.5+0.9*(h-152.4), abw=ibw+0.4*Math.max(0,w-ibw);
+  const floor=Math.max(1500,r50(bmr*0.75));
+  const kcal=Math.max(floor,r50(tdee*(tirz?0.7:0.8)));
+  const protein=r5(abw*(tirz?1.3:1.2));
+  const glasses=Math.min(12,Math.max(7,Math.round(abw*30/1000/GLASS)));
+  return {bmi,w,bmr:r50(bmr),tdee:r50(tdee),kcal,floor,protein,glasses};
+}
+function targets(){
+  const c=calcFor(settings.onTirz!==false)||{};
+  return {kcal:+settings.kcalManual||c.kcal||2100,protein:+settings.protManual||c.protein||110,floor:c.floor||1500,glasses:c.glasses||8};
+}
+
+// ---------- schedule logic ----------
+function shotInfo(k){
+  if(settings.onTirz===false||!settings.firstShot)return null;
+  const d=diffDays(k,settings.firstShot); if(d<0)return {before:-d};
+  const n=Math.floor(d/7)+1, since=d%7;
+  return {n,since,isShot:since===0,dose:n<=4?(settings.dose1||'стартовая доза'):(settings.dose2||'повышенная доза')};
+}
+const TABEX=[{from:1,to:3,n:6,step:120,txt:'каждые 2 ч'},{from:4,to:12,n:5,step:150,txt:'каждые 2,5 ч'},{from:13,to:16,n:4,step:180,txt:'каждые 3 ч'},{from:17,to:20,n:3,step:300,txt:'каждые 5 ч'},{from:21,to:25,n:2,step:600,txt:'1–2 в день'}];
+const toMin=t=>{const [h,m]=(t||'08:00').split(':').map(Number);return h*60+(m||0)};
+const toHM=m=>pad(Math.floor(m/60)%24)+':'+pad(m%60);
+function tabexInfo(k){
+  if(!settings.quit||!settings.tabexStart)return null;
+  const d=diffDays(k,settings.tabexStart)+1; if(d<1)return {before:1-d}; if(d>25)return {done:true,day:d};
+  const st=TABEX.find(s=>d>=s.from&&d<=s.to), t0=toMin(settings.tabexTime);
+  const times=Array.from({length:st.n},(_,i)=>toHM(t0+i*st.step));
+  return {day:d,n:st.n,txt:st.txt,times,optionalLast:d>=21};
+}
+
+// ---------- today ----------
+function renderToday(){
+  const D=day(cur), dt=parse(cur), today=key(new Date());
+  $('dateLabel').textContent=WD[dt.getDay()]+', '+dt.getDate()+' '+MON[dt.getMonth()];
+  $('toToday').hidden=cur===today;
+  $('title').textContent=cur===today?'Сегодня':(cur<today?'Прошлый день':'Будущий день');
+
+  const b=$('banners'); b.innerHTML='';
+  const si=shotInfo(cur), ti=tabexInfo(cur);
+  const add=(cls,h,t)=>{const e=document.createElement('div');e.className='banner '+cls;e.innerHTML='<b></b><span></span>';e.querySelector('b').textContent=h;e.querySelector('span').textContent=t;b.appendChild(e)};
+  if(settings.onTirz!==false&&!settings.firstShot) add('warn','Укажи дату первого укола','В «Настройках». Тогда здесь появится день укола и подсказки.');
+  else if(si&&si.before) add('shot','До первого укола '+si.before+' дн.','Пока: витамин D и железо, прогулки, вода.');
+  else if(si&&si.isShot) add('shot','День укола №'+si.n,'Доза: '+si.dose+'. Место укола меняй.');
+  else if(si&&si.since<=3) add('warn','День '+si.since+' после укола','Пик тошноты. Маленькие порции, медленно, без жирного. Больше воды.');
+  if(ti&&ti.day===5) add('warn','Табекс, день 5','С сегодняшнего дня — без сигарет. Отмечай честно, даже если сорвалась.');
+
+  // meds
+  const m=$('meds'); m.innerHTML='';
+  const list=(settings.meds||[]).slice().sort((a,b)=>(a.time||'99').localeCompare(b.time||'99'));
+  const items=list.map(x=>({id:x.id,t:x.name||'Без названия',s:x.note||'',tag:x.time||''}));
+  if(si&&si.isShot) items.unshift({id:'shot',t:'Укол №'+si.n,s:si.dose,tag:'укол'});
+  if(!items.length){const e=document.createElement('div');e.className='hint';e.textContent='Список пуст. Нажми «Изменить», чтобы добавить.';m.appendChild(e)}
+  items.forEach(x=>m.appendChild(checkBtn(x.t,x.s,x.tag,!!D.meds[x.id],()=>{D.meds[x.id]=!D.meds[x.id];saveDay(cur);renderToday()})));
+  m.hidden=medEditing;
+
+  // tabex
+  const tc=$('tabexCard'); tc.hidden=!(ti&&(ti.day||ti.before));
+  if(!tc.hidden){
+    const tl=$('tabexList');tl.innerHTML='';
+    if(ti.before){$('tabexTitle').textContent='Табекс';$('tabexTag').textContent='через '+ti.before+' дн.';$('tabexHint').textContent='Старт '+fmtDate(settings.tabexStart)+'. Расписание — в «Настройках».'}
+    else if(ti.done){tc.hidden=true}
+    else{
+      $('tabexTitle').textContent='Табекс, день '+ti.day+' из 25';$('tabexTag').textContent=ti.txt;
+      ti.times.forEach((t,i)=>tl.appendChild(checkBtn('Таблетка '+(i+1),ti.optionalLast&&i===1?'по желанию':'',t,!!D.tabex[t],()=>{D.tabex[t]=!D.tabex[t];saveDay(cur);renderToday()})));
+      $('tabexHint').textContent=ti.day<5?'Сигареты сокращай. Бросить — не позже 5-го дня.':'Уже без сигарет. Если сорвалась — отметь и продолжай курс.';
+    }
+  }
+
+  renderFood(D);
+  renderWater(D);
+  renderActs(D);
+
+  // cigs
+  $('cigCard').hidden=!settings.quit;
+  $('cigV').textContent=D.cigs==null?'—':D.cigs;
+  const sf=smokeFree(cur); $('cigHint').textContent=sf>0?('без сигарет подряд: '+sf+' дн.'):'';
+
+  scale('energy',['1 без сил','2','3','4','5 бодрая'],D,'energy');
+  scale('nausea',['нет','слегка','заметно','сильно'],D,'nausea');
+  const nEl=$('note'); if(document.activeElement!==nEl) nEl.value=D.note||'';
+}
+function fmtDate(k){const d=parse(k);return d.getDate()+' '+MON[d.getMonth()]}
+function checkBtn(t,s,tag,on,fn){
+  const btn=document.createElement('button');btn.className='check';btn.setAttribute('aria-pressed',on);
+  btn.innerHTML='<span class="box">✓</span><span class="t"><span></span><small></small></span><span class="tag"></span>';
+  btn.querySelector('.t span').textContent=t;const sm=btn.querySelector('small');sm.textContent=s;sm.hidden=!s;
+  const tg=btn.querySelector('.tag');tg.textContent=tag;tg.hidden=!tag;btn.onclick=fn;return btn}
+function scale(id,labels,D,f,onPick){
+  const el=$(id);el.innerHTML='';
+  labels.forEach((l,i)=>{const p=document.createElement('button');p.className='pill';p.textContent=l;p.setAttribute('aria-pressed',D[f]===i);
+    p.onclick=()=>{D[f]=D[f]===i?null:i;if(onPick)onPick();else{saveDay(cur);renderToday()}};el.appendChild(p)});
+}
+function smokeFree(from){
+  let n=0,k=from;
+  for(;;){const x=days[k];if(x&&x.cigs===0){n++;k=addDays(k,-1)}else break;if(n>999)break}
+  return n;
+}
+$('prev').onclick=()=>{cur=addDays(cur,-1);closePanel();renderToday()};
+$('next').onclick=()=>{cur=addDays(cur,1);closePanel();renderToday()};
+$('toToday').onclick=()=>{cur=key(new Date());closePanel();renderToday()};
+$('cigPlus').onclick=()=>{const D=day(cur);D.cigs=(D.cigs??0)+1;saveDay(cur);renderToday()};
+$('cigMinus').onclick=()=>{const D=day(cur);D.cigs=D.cigs==null?0:Math.max(0,D.cigs-1);saveDay(cur);renderToday()};
+$('note').addEventListener('input',e=>{day(cur).note=e.target.value;saveDay(cur)});
+
+// ---------- meds editor ----------
+let medEditing=false;
+function renderMedEditor(){
+  const ed=$('medEditor');ed.hidden=!medEditing;$('medEditBtn').textContent=medEditing?'Готово':'Изменить';
+  if(!medEditing)return;
+  ed.innerHTML='';
+  (settings.meds||[]).forEach((x,i)=>{
+    const r=document.createElement('div');r.className='medrow';
+    r.innerHTML='<div class="nm"><input type="text" placeholder="Название"><button class="x" aria-label="Удалить">×</button></div><input type="time" aria-label="Время"><input type="text" placeholder="Как: с едой, 1 пшик, с апельсином…" aria-label="Как принимать">';
+    const [n,t,c]=r.querySelectorAll('input');
+    n.id='mn_'+x.id;t.id='mt_'+x.id;c.id='mc_'+x.id;
+    n.value=x.name||'';t.value=x.time||'';c.value=x.note||'';
+    n.oninput=e=>x.name=e.target.value;t.oninput=e=>x.time=e.target.value;c.oninput=e=>x.note=e.target.value;
+    r.querySelector('.x').onclick=()=>{settings.meds.splice(i,1);renderMedEditor()};
+    ed.appendChild(r)});
+  const add=document.createElement('button');add.className='btn ghost';add.textContent='+ Добавить лекарство';
+  add.onclick=()=>{settings.meds=settings.meds||[];settings.meds.push({id:'m'+Date.now().toString(36),name:'',time:'',note:''});renderMedEditor();
+    const l=settings.meds[settings.meds.length-1];const el=$('mn_'+l.id);if(el)el.focus()};
+  ed.appendChild(add);
+  const hint=document.createElement('div');hint.className='hint';hint.textContent='Укол и Табекс сюда добавлять не нужно: они появляются сами по датам из «Настроек».';ed.appendChild(hint);
+}
+$('medEditBtn').onclick=()=>{
+  if(medEditing){settings.meds=(settings.meds||[]).filter(x=>(x.name||'').trim());saveSettingsNow()}
+  medEditing=!medEditing;renderMedEditor();renderToday()};
+
+// ---------- food ----------
+const MEALS=['Завтрак','Обед','Ужин','Перекус'];
+const HUNGER=['1 не голодна','2','3 голодна','4','5 очень'];
+const SAT=['1 не наелась','2','3 в самый раз','4','5 переела'];
+let panelMeal=null, draft={hunger:null,satiety:null};
+function renderFood(D){
+  const kc=D.food.reduce((a,f)=>a+(+f.kcal||0),0), pr=D.food.reduce((a,f)=>a+(+f.protein||0),0);
+  const T=targets();
+  const setN=(id,v,sub)=>{const e=$(id);e.textContent=String(Math.round(v));const s=document.createElement('small');s.textContent=sub;e.append(s)};
+  setN('kcalN',kc,' / '+T.kcal+' ккал');setN('protN',pr,' / '+T.protein+' г белка');
+  $('kcalBar').firstChild.style.width=Math.min(100,kc/T.kcal*100)+'%';$('kcalBar').classList.toggle('over',kc>T.kcal*1.1);
+  $('protBar').firstChild.style.width=Math.min(100,pr/T.protein*100)+'%';
+  const late=cur<key(new Date())||new Date().getHours()>=19;
+  const w=$('foodWarn');w.hidden=!(D.food.length&&late&&kc<T.floor);
+  w.textContent='Меньше минимума ('+T.floor+' ккал). На уколах главный риск — недоесть белок, а не переесть.';
+  const mb=$('mealBtns');mb.innerHTML='';
+  MEALS.forEach(n=>{const b=document.createElement('button');b.className='pill';b.textContent='+ '+n;b.setAttribute('aria-pressed',panelMeal===n);
+    b.onclick=()=>{if(panelMeal===n){closePanel()}else{panelMeal=n;draft={hunger:null,satiety:null};$('foodKcal').value='';$('foodProt').value='';$('foodPanel').hidden=false;$('panelTitle').textContent=n;renderDraft();setTimeout(()=>$('foodKcal').focus(),0)}renderFood(D)};mb.appendChild(b)});
+  const fl=$('foodList');fl.innerHTML='';
+  MEALS.forEach(n=>{D.food.filter(f=>f.meal===n).forEach(f=>{
+    const r=document.createElement('div');r.className='item';
+    r.innerHTML='<span class="t"><span></span><small></small></span><span class="k"></span><button class="x" aria-label="Удалить">×</button>';
+    r.querySelector('.t span').textContent=n+(f.name?' · '+f.name:'');
+    const bits=[];if(f.hunger!=null)bits.push('голод '+(f.hunger+1)+'/5');if(f.satiety!=null)bits.push('сытость '+(f.satiety+1)+'/5');
+    r.querySelector('small').textContent=bits.join(' · ');
+    const k=r.querySelector('.k');k.textContent=Math.round(f.kcal||0)+' ккал';const ks=document.createElement('small');ks.textContent=Math.round(f.protein||0)+' г белка';k.append(ks);
+    r.querySelector('.x').onclick=()=>{D.food=D.food.filter(z=>z!==f);saveDay(cur);renderToday()};fl.appendChild(r)})});
+}
+function renderDraft(){scale('hungerPick',HUNGER,draft,'hunger',renderDraft);scale('satPick',SAT,draft,'satiety',renderDraft)}
+function closePanel(){panelMeal=null;$('foodPanel').hidden=true}
+$('panelClose').onclick=()=>{closePanel();renderToday()};
+$('foodAdd').onclick=()=>{
+  const k=parseFloat($('foodKcal').value),p=parseFloat($('foodProt').value);
+  if(!isFinite(k)&&!isFinite(p)){$('foodKcal').focus();return}
+  const D=day(cur);D.food.push({meal:panelMeal,kcal:isFinite(k)?Math.round(k):0,protein:isFinite(p)?Math.round(p):0,hunger:draft.hunger,satiety:draft.satiety});
+  closePanel();saveDay(cur);renderToday()};
+
+// ---------- water ----------
+function renderWater(D){
+  const G=targets().glasses, n=Math.max(G,D.water);
+  const wt=$('water');wt.innerHTML='';
+  for(let i=1;i<=n;i++){const d=document.createElement('button');d.className='drop'+(i<=D.water?' on':'')+(i>G?' extra':'');
+    d.setAttribute('aria-label',i+' стаканов');d.onclick=()=>{D.water=D.water===i?i-1:i;saveDay(cur);renderToday()};wt.appendChild(d)}
+  const pl=document.createElement('button');pl.className='plusglass';pl.textContent='+ стакан';pl.onclick=()=>{D.water=(D.water||0)+1;saveDay(cur);renderToday()};wt.appendChild(pl);
+  $('waterLbl').textContent=D.water+' из '+G+' · '+fmt1(D.water*GLASS)+' л из '+fmt1(G*GLASS);
+}
+
+// ---------- activity ----------
+const ACTS=['Прогулка с собакой','Бассейн','Велосипед','Ходьба','Зарядка / ЛФК','Растяжка','Другое'];
+const DURS=[15,30,45,60,90,120];
+let actSel='Прогулка с собакой', durSel=30;
+const fmtMin=m=>m>=60?(Math.floor(m/60)+' ч'+(m%60?' '+m%60+' мин':'')):m+' мин';
+function renderActs(D){
+  const at=$('actType');at.innerHTML='';
+  ACTS.forEach(a=>{const b=document.createElement('button');b.className='pill';b.textContent=a;b.setAttribute('aria-pressed',actSel===a);b.onclick=()=>{actSel=a;renderActs(D)};at.appendChild(b)});
+  const ad=$('actDur');ad.innerHTML='';
+  DURS.forEach(m=>{const b=document.createElement('button');b.className='pill';b.textContent=fmtMin(m);b.setAttribute('aria-pressed',durSel===m);b.onclick=()=>{durSel=m;renderActs(D)};ad.appendChild(b)});
+  const al=$('actList');al.innerHTML='';
+  D.acts.forEach((a,i)=>{const r=document.createElement('div');r.className='item';
+    r.innerHTML='<span class="t"></span><span class="k"></span><button class="x" aria-label="Удалить">×</button>';
+    r.querySelector('.t').textContent=a.type;r.querySelector('.k').textContent=fmtMin(a.min);
+    r.querySelector('.x').onclick=()=>{D.acts.splice(i,1);saveDay(cur);renderToday()};al.appendChild(r)});
+  const tot=D.acts.reduce((s,a)=>s+a.min,0);
+  $('actTotal').textContent=tot?('итого '+fmtMin(tot)):'пока пусто';
+}
+$('actAdd').onclick=()=>{const D=day(cur);D.acts.push({type:actSel,min:durSel});saveDay(cur);renderToday()};
+
+// ---------- progress ----------
+const MEAS=[['neck','Шея','по середине'],['chest','Грудь','по выступающим точкам'],['under','Под грудью','сразу под грудью'],['arm','Рука','самая широкая часть плеча'],['waist','Талия','самое узкое место'],['belly','Живот','по пупку'],['hips','Бёдра','по ягодицам'],['thigh','Нога','под ягодичной складкой'],['calf','Голень','самая широкая часть']];
+let zoneSel='waist';
+const hasMeas=k=>days[k]&&days[k].meas&&Object.values(days[k].meas).some(v=>v);
+function renderProgress(){
+  const pts=Object.keys(days).filter(k=>days[k].weight).sort().map(k=>({k,v:days[k].weight}));
+  const start=+settings.startWeight||150, g1=+settings.goal1||110;
+  const last=pts.length?pts[pts.length-1].v:start, lost=start-last;
+  const bmi=settings.height?last/Math.pow(settings.height/100,2):0;
+  $('weightSummary').textContent=(bmi?'ИМТ '+fmt1(bmi)+' · ':'')+(pts.length?('сейчас '+fmt1(last)+' кг · '+(lost>=0?'−':'+')+fmt1(Math.abs(lost))+' кг'):'старт '+start+' кг');
+  drawLine($('chart'),340,190,pts,[{v:start,label:'старт '+start,dash:'2 4',color:'var(--muted)'},{v:g1,label:'цель '+g1,dash:'4 4',color:'var(--ok)'}],10,'Добавь замер с весом — кнопка ниже');
+  // zone chips + chart
+  const zp=$('zonePick');zp.innerHTML='';
+  MEAS.forEach(([id,l])=>{const b=document.createElement('button');b.className='pill';b.textContent=l;b.setAttribute('aria-pressed',zoneSel===id);b.onclick=()=>{zoneSel=id;renderProgress()};zp.appendChild(b)});
+  const zpts=Object.keys(days).filter(k=>days[k].meas&&days[k].meas[zoneSel]).sort().map(k=>({k,v:days[k].meas[zoneSel]}));
+  drawLine($('zoneChart'),340,170,zpts,[],5,'Пока нет замеров по этой зоне');
+  renderMeasTable();
+  renderWeekStats();
+  renderReview();
+}
+function drawLine(svg,W,H,pts,refs,stepV,empty){
+  const L=34,R=10,T=14,B=24;
+  const now=+new Date(), t0=pts.length?Math.min(+parse(pts[0].k),now):now;
+  const t1=Math.max(now,t0+28*DAYMS,pts.length?+parse(pts[pts.length-1].k):0);
+  const vs=pts.map(p=>p.v).concat(refs.map(r=>r.v));
+  if(!vs.length){svg.innerHTML=`<text x="${W/2}" y="${H/2}" text-anchor="middle" style="font-size:12px">${empty}</text>`;return}
+  let lo=Math.floor((Math.min(...vs)-stepV/2)/stepV)*stepV, hi=Math.ceil((Math.max(...vs)+stepV/2)/stepV)*stepV;
+  while((hi-lo)/stepV>6)stepV*=2;
+  lo=Math.floor(lo/stepV)*stepV;hi=Math.ceil(hi/stepV)*stepV;
+  const x=t=>L+(t-t0)/(t1-t0)*(W-L-R), y=v=>T+(hi-v)/(hi-lo)*(H-T-B);
+  let s='';
+  for(let v=lo;v<=hi+1e-9;v+=stepV)s+=`<line x1="${L}" x2="${W-R}" y1="${y(v)}" y2="${y(v)}" stroke="var(--line)" stroke-width="1"/><text x="${L-6}" y="${y(v)+3}" text-anchor="end">${v}</text>`;
+  refs.forEach((r,i)=>{s+=`<line x1="${L}" x2="${W-R}" y1="${y(r.v)}" y2="${y(r.v)}" stroke="${r.color}" stroke-dasharray="${r.dash}" stroke-width="1.5"/><text x="${W-R}" y="${y(r.v)+(i?12:-5)}" text-anchor="end" style="fill:${r.color}">${r.label}</text>`});
+  const fd=t=>{const d=new Date(t);return d.getDate()+' '+MON[d.getMonth()].slice(0,3)};
+  s+=`<text x="${L}" y="${H-6}">${fd(t0)}</text><text x="${W-R}" y="${H-6}" text-anchor="end">${fd(t1)}</text>`;
+  if(pts.length){
+    const P=pts.map(p=>[x(+parse(p.k)),y(p.v)]);
+    if(P.length>1){s+=`<path d="M${P[0][0]},${H-B} L${P.map(p=>p.join(',')).join(' L')} L${P[P.length-1][0]},${H-B} Z" fill="var(--accent-soft)" opacity=".7"/>`;
+      s+=`<polyline points="${P.map(p=>p.join(',')).join(' ')}" fill="none" stroke="var(--accent)" stroke-width="2.5" stroke-linejoin="round"/>`}
+    P.forEach((p,i)=>{s+=`<circle cx="${p[0]}" cy="${p[1]}" r="${i===P.length-1?5:3}" fill="var(--accent)" stroke="var(--surface)" stroke-width="2"/>`});
+    const lp=P[P.length-1];s+=`<text x="${Math.min(lp[0],W-R-20)}" y="${lp[1]-9}" text-anchor="middle" style="fill:var(--ink);font-weight:700;font-size:11px">${fmt1(pts[pts.length-1].v)}</text>`;
+  }
+  svg.innerHTML=s;
+}
+function renderMeasTable(){
+  const ks=Object.keys(days).filter(k=>hasMeas(k)||days[k].weight).sort();
+  const t=$('measTable');
+  if(!ks.length){t.innerHTML='<tbody><tr><td class="hint" style="border:0;position:static">Нажми «+ Добавить замер». Удобно по понедельникам утром.</td></tr></tbody>';$('measSummary').textContent='';return}
+  const dl=k=>{const d=parse(k);return d.getDate()+'.'+pad(d.getMonth()+1)};
+  const rows=[['weight','Вес, кг']].concat(MEAS.map(([id,l])=>[id,l]));
+  const val=(k,id)=>id==='weight'?days[k].weight:(days[k].meas||{})[id];
+  const cols=ks.slice().reverse();
+  let totalCm=0, html='<thead><tr><th>Зона</th><th>Итого</th>'+cols.map(k=>'<th><button data-k="'+k+'" aria-label="Изменить замер за '+dl(k)+'">'+dl(k)+'</button></th>').join('')+'</tr></thead><tbody>';
+  rows.forEach(([id,l])=>{
+    const vs=ks.map(k=>val(k,id)).filter(v=>v);if(!vs.length)return;
+    const d=vs[vs.length-1]-vs[0]; if(id!=='weight')totalCm+=d;
+    html+='<tr><td>'+l+'</td><td class="'+(d<0?'down':d>0?'up':'')+'">'+(vs.length>1?((d>0?'+':d<0?'−':'')+fmt1(Math.abs(d))):'—')+'</td>'+
+      cols.map(k=>{const v=val(k,id);return '<td>'+(v?fmt1(v):'<span class="hint">·</span>')+'</td>'}).join('')+'</tr>'});
+  t.innerHTML=html+'</tbody>';
+  t.querySelectorAll('thead button').forEach(b=>b.onclick=()=>openMeas(b.dataset.k));
+  $('measSummary').textContent=ks.length>1?('сантиметров всего '+(totalCm<=0?'−':'+')+fmt1(Math.abs(totalCm))):'первый замер';
+}
+// measure form
+let measKey=null;
+function lastBefore(k){const out={};Object.keys(days).filter(x=>x<k).sort().forEach(x=>{const d=days[x];if(d.weight)out.weight=d.weight;if(d.meas)for(const [id,v] of Object.entries(d.meas))if(v)out[id]=v});return out}
+function openMeas(k){
+  measKey=k;$('measPanel').hidden=false;$('measAddBtn').hidden=true;$('measDate').value=k;
+  const D=day(k), prev=lastBefore(k), g=$('measGrid');g.innerHTML='';
+  const field=(id,l,h,val,pv,step)=>{const lab=document.createElement('label');lab.className='f';lab.htmlFor='mf_'+id;
+    lab.innerHTML='<span></span><input type="number" inputmode="decimal" min="10" max="300">';
+    lab.querySelector('span').textContent=l+(pv?' · было '+fmt1(pv):'');
+    const inp=lab.querySelector('input');inp.id='mf_'+id;inp.step=step;inp.placeholder=h;inp.value=val??'';g.appendChild(lab)};
+  field('weight','Вес, кг','утром натощак',D.weight,prev.weight,'0.1');
+  MEAS.forEach(([id,l,h])=>field(id,l+', см',h,D.meas&&D.meas[id],prev[id],'0.5'));
+  $('measPanel').scrollIntoView({block:'start',behavior:'smooth'});
+}
+function closeMeas(){measKey=null;$('measPanel').hidden=true;$('measAddBtn').hidden=false}
+$('measAddBtn').onclick=()=>openMeas(key(new Date()));
+$('measCancel').onclick=closeMeas;
+$('measDate').addEventListener('change',e=>{if(e.target.value)openMeas(e.target.value)});
+$('measSave').onclick=()=>{
+  const k=$('measDate').value||measKey;const D=day(k);const num=id=>{const v=parseFloat(String($('mf_'+id).value).replace(',','.'));return isFinite(v)?v:null};
+  D.weight=num('weight');D.meas={};MEAS.forEach(([id])=>D.meas[id]=num(id));
+  saveDay(k);closeMeas();renderProgress()};
+
+// week stats
+function renderWeekStats(){
+  const today=key(new Date()); let actDays=0,mins=0,pool=0,water=0,kc=0,kd=0,pr=0,protOk=0,cigs=0,cigDays=0;
+  const T=targets();
+  for(let i=0;i<7;i++){const x=days[addDays(today,-i)];if(!x)continue;
+    const acts=x.acts||[];const m=acts.reduce((s,a)=>s+a.min,0);mins+=m;if(m>=20)actDays++;pool+=acts.filter(a=>a.type==='Бассейн').length;
+    water+=x.water||0;const f=x.food||[];if(f.length){kd++;const k=f.reduce((s,z)=>s+(+z.kcal||0),0),p=f.reduce((s,z)=>s+(+z.protein||0),0);kc+=k;pr+=p;if(p>=T.protein*0.9)protOk++}
+    if(x.cigs!=null){cigs+=x.cigs;cigDays++}}
+  const st=[[actDays+'/7','дней с движением 20+ мин'],[fmtMin(mins),'движения всего'],[pool,'бассейн'],
+    [kd?Math.round(kc/kd):'—','ккал в день в среднем'],[kd?Math.round(pr/kd):'—','г белка в день'],[protOk+'/7','дней белок в норме'],
+    [fmt1(water/7*GLASS)+' л','воды в день']];
+  if(settings.quit)st.push([cigDays?cigs:'—','сигарет за неделю'],[smokeFree(today),'дней без сигарет']);
+  $('week').innerHTML='';st.forEach(([n,l])=>{const e=document.createElement('div');e.className='stat';e.innerHTML='<span class="n"></span><span class="l"></span>';
+    e.querySelector('.n').textContent=n;e.querySelector('.l').textContent=l;$('week').appendChild(e)});
+}
+// weekly review
+const mondayOf=k=>{const d=parse(k);const wd=(d.getDay()+6)%7;return addDays(k,-wd)};
+let wk=mondayOf(key(new Date()));
+function renderReview(){
+  const end=addDays(wk,6);
+  $('wkLabel').textContent=fmtDate(wk)+' — '+fmtDate(end)+(wk===mondayOf(key(new Date()))?' · эта неделя':'');
+  $('wkNext').disabled=wk>=mondayOf(key(new Date()));
+  const T=targets(); let act=0,mins=0,kd=0,protOk=0,under=0,hs=[],ss=[],en=[],nz=0,w0=null,w1=null,water=0,wd=0;
+  for(let i=0;i<7;i++){const k=addDays(wk,i),x=days[k];if(!x)continue;
+    const m=(x.acts||[]).reduce((s,a)=>s+a.min,0);mins+=m;if(m>=20)act++;
+    const f=x.food||[];if(f.length){kd++;const kc=f.reduce((s,z)=>s+(+z.kcal||0),0),p=f.reduce((s,z)=>s+(+z.protein||0),0);if(p>=T.protein*0.9)protOk++;if(kc<T.floor&&(k<key(new Date())||new Date().getHours()>=21))under++;
+      f.forEach(z=>{if(z.hunger!=null)hs.push(z.hunger+1);if(z.satiety!=null)ss.push(z.satiety+1)})}
+    if(x.energy!=null)en.push(x.energy+1); if(x.nausea>=2)nz++;
+    if(x.water){water+=x.water;wd++}
+    if(x.weight){if(w0==null)w0=x.weight;w1=x.weight}}
+  const avg=a=>a.reduce((s,v)=>s+v,0)/a.length;
+  const facts=[];
+  facts.push('Движение 20+ минут: '+act+' из 7 дней, всего '+fmtMin(mins)+'.');
+  if(kd){facts.push('Еду записала '+kd+' из 7 дней. Белок в норме: '+protOk+' дн.');if(under)facts.push('Ниже минимума по калориям: '+under+' дн. — стоит добавить белковый перекус.')}
+  else facts.push('Еду на этой неделе не записывала.');
+  if(hs.length)facts.push('Голод до еды в среднем '+fmt1(avg(hs))+'/5'+(avg(hs)>=4?' — садишься за стол слишком голодной, попробуй перекус между.':'.'));
+  if(ss.length)facts.push('Сытость после еды '+fmt1(avg(ss))+'/5'+(avg(ss)>=4.2?' — часто до «переела», ешь медленнее.':avg(ss)<2.2?' — часто не наедаешься, добавь белка.':'.'));
+  if(en.length)facts.push('Энергия в среднем '+fmt1(avg(en))+'/5.');
+  if(nz)facts.push('Заметная тошнота: '+nz+' дн.'+(nz>=2?' Если подряд — напиши врачу.':''));
+  if(wd)facts.push('Вода: в среднем '+fmt1(water/wd*GLASS)+' л в день.');
+  if(w0!=null&&w1!=null&&w0!==w1)facts.push('Вес за неделю: '+(w1<w0?'−':'+')+fmt1(Math.abs(w1-w0))+' кг.');
+  const ul=$('wkFacts');ul.innerHTML='';facts.forEach(t=>{const li=document.createElement('li');li.textContent=t;ul.appendChild(li)});
+  const W=weeks[wk]||{};
+  [['wkGood','good'],['wkHard','hard'],['wkNextStep','next']].forEach(([id,f])=>{if(document.activeElement!==$(id))$(id).value=W[f]||''});
+}
+[['wkGood','good'],['wkHard','hard'],['wkNextStep','next']].forEach(([id,f])=>$(id).addEventListener('input',e=>{weeks[wk]=weeks[wk]||{};weeks[wk][f]=e.target.value;saveWeek(wk)}));
+$('wkPrev').onclick=()=>{wk=addDays(wk,-7);renderReview()};
+$('wkNext').onclick=()=>{wk=addDays(wk,7);renderReview()};
+
+// ---------- settings ----------
+function renderCalc(){
+  const tz=settings.onTirz!==false, c=calcFor(tz), o=calcFor(!tz), T=targets();
+  $('calcMode').textContent=tz?'с тирзепатидом':'без укола';
+  $('calcEmpty').hidden=!!(c&&c.bmr);
+  const st=$('calcStats');st.innerHTML='';
+  const add=(n,l)=>{const e=document.createElement('div');e.className='stat';e.innerHTML='<span class="n"></span><span class="l"></span>';e.querySelector('.n').textContent=n;e.querySelector('.l').textContent=l;st.appendChild(e)};
+  if(c){add(fmt1(c.bmi),'ИМТ · '+bmiCat(c.bmi));add(fmt1(c.w),'кг сейчас')}
+  if(c&&c.bmr){add(c.bmr,'ккал базовый обмен');add(c.tdee,'ккал тратишь в день');add(T.kcal,'ккал — цель в день');add(c.floor,'ккал — не меньше');
+    add(T.protein,'г белка в день');add(fmt1(c.glasses*GLASS)+' л','воды ('+c.glasses+' стаканов)')}
+  $('calcCompare').textContent=(c&&c.bmr&&o&&o.bmr)?(tz?('Без укола было бы ~'+o.kcal+' ккал. С уколом ориентир ниже: аппетит и так падает, главное — добрать белок и не опускаться ниже '+c.floor+'.'):('С уколом ориентир был бы ~'+o.kcal+' ккал.')):'';
+  $('tirzFields').hidden=!tz;$('sTirz').setAttribute('aria-pressed',tz);
+  $('quitFields').hidden=!settings.quit;$('sQuit').setAttribute('aria-pressed',!!settings.quit);
+  // tabex schedule table
+  const t0=toMin(settings.tabexTime), td=settings.tabexStart?diffDays(key(new Date()),settings.tabexStart)+1:0;
+  let h='';TABEX.forEach(s=>{const ts=Array.from({length:s.n},(_,i)=>toHM(t0+i*s.step));
+    h+='<tr class="'+(td>=s.from&&td<=s.to?'now':'')+'"><td>Дни '+s.from+'–'+s.to+'</td><td>'+(s.from>=21?'1–2 таб.':s.n+' таб., '+s.txt)+'</td><td>'+ts.join(', ')+'</td></tr>'});
+  $('schedTable').innerHTML=h;
+}
+const sMap={sAge:'age',sHeight:'height',sStart:'startWeight',sGoal1:'goal1',sGoal2:'goal2',sAct:'act',sShot:'firstShot',sDose1:'dose1',sDose2:'dose2',sTabex:'tabexStart',sTabexTime:'tabexTime',sKcalM:'kcalManual',sProtM:'protManual'};
+const NUMS=['age','height','startWeight','goal1','goal2','act','kcalManual','protManual'];
+function fillSettings(){for(const [id,f] of Object.entries(sMap)){const el=$(id);if(document.activeElement!==el)el.value=settings[f]??''}
+  if(!$('sAct').value)$('sAct').value='1.375'; renderCalc()}
+let sTimer=null;
+function onSetting(){
+  for(const [id,f] of Object.entries(sMap)){const v=$(id).value;settings[f]=NUMS.includes(f)?(v===''?'':parseFloat(v)):v}
+  renderCalc();$('settingsSaved').textContent='сохраняю…';
+  clearTimeout(sTimer);sTimer=setTimeout(()=>{saveSettingsNow();sTimer=null;$('settingsSaved').textContent='сохранено'},700);
+}
+Object.keys(sMap).forEach(id=>{$(id).addEventListener('input',onSetting);$(id).addEventListener('change',onSetting)});
+$('sTirz').onclick=()=>{settings.onTirz=settings.onTirz===false;onSetting()};
+$('sQuit').onclick=()=>{settings.quit=!settings.quit;if(settings.quit&&!settings.tabexStart){settings.tabexStart=key(new Date());$('sTabex').value=settings.tabexStart}onSetting()};
+
+// ---------- nav ----------
+let view='today';
+try{const v=localStorage.getItem('ritm-view');if(['today','progress','plan'].includes(v))view=v}catch(e){}
+function show(v){view=v;try{localStorage.setItem('ritm-view',v)}catch(e){}
+  ['today','progress','plan'].forEach(n=>$('v-'+n).hidden=n!==v);
+  document.querySelectorAll('.nav button').forEach(b=>b.setAttribute('aria-current',b.dataset.v===v?'page':'false'));
+  renderAll();if(v!=='today')$('title').textContent=v==='progress'?'Прогресс':'Настройки';window.scrollTo(0,0)}
+document.querySelectorAll('.nav button').forEach(b=>b.onclick=()=>show(b.dataset.v));
+function renderAll(){if(view==='today')renderToday();else if(view==='progress')renderProgress();else fillSettings();
+  const si=shotInfo(key(new Date()));
+  $('eyebrow').textContent=si&&si.n?('Неделя '+si.n+' на уколах'):'Мой ритм';}
+function typing(){const a=document.activeElement;return a&&(['INPUT','TEXTAREA','SELECT'].includes(a.tagName))}
+
+setStatus(saved?'сохранено на телефоне':'');
+show(view);
+
+// ---------- Telegram ----------
+if(tg){try{tg.ready();tg.expand();
+  const applyTheme=()=>document.documentElement.setAttribute('data-theme',tg.colorScheme==='dark'?'dark':'light');
+  applyTheme();tg.onEvent('themeChanged',applyTheme);
+  if(tg.disableVerticalSwipes)tg.disableVerticalSwipes();}catch(e){}}
+if(!cs){setStatus('открой через бота — иначе данные только на этом устройстве')}
+else{
+  setStatus('загрузка из облака…');
+  cs.getKeys((err,keys)=>{
+    if(err||!keys){setStatus('облако недоступно, работаю локально');return}
+    if(!keys.length){setStatus('готово');
+      // первая загрузка: переносим локальные данные в облако
+      saveSettingsNow();Object.keys(days).forEach(k=>writeDoc('days/'+k,()=>Object.assign({date:k},days[k])));Object.keys(weeks).forEach(k=>writeDoc('weeks/'+k,()=>Object.assign({week:k},weeks[k])));return}
+    const chunks=[];for(let i=0;i<keys.length;i+=50)chunks.push(keys.slice(i,i+50));
+    let left=chunks.length;
+    chunks.forEach(ch=>cs.getItems(ch,(e,vals)=>{
+      if(!e&&vals){for(const [k,v] of Object.entries(vals)){if(!v)continue;let x;try{x=JSON.parse(v)}catch(_){continue}
+        if(k==='settings'){settings=Object.assign(settings,x)}
+        else if(k.startsWith('d_')){const id=k.slice(2);if(dirty[id])continue;delete x.date;days[id]=Object.assign(day(id),x)}
+        else if(k.startsWith('w_')){const id=k.slice(2);delete x.week;weeks[id]=x}}}
+      if(--left===0){lsSet();setStatus('синхронизировано');if(!(typing()||measKey||panelMeal))renderAll()}
+    }));
+  });
+}
+})();
+</script>
+</body>
+</html>
