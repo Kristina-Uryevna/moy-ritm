@@ -117,6 +117,14 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-vis
 .sched{width:100%;border-collapse:collapse;font-size:13.5px}
 .sched td{padding:6px 4px;border-top:1px solid var(--line)}
 .sched tr.now td{font-weight:700;color:var(--accent)}
+.sum{display:flex;flex-direction:column;gap:6px}
+.sumrow{display:grid;grid-template-columns:28px 1fr auto;gap:8px;align-items:center;padding:8px 10px;border-radius:12px;background:var(--surface2)}
+.sumrow .ic{font-size:18px;text-align:center}
+.sumrow .v{font-weight:700;white-space:nowrap;font-size:13.5px}
+.sumrow small{display:block;color:var(--muted);font-size:12.5px}
+.verdict{border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:4px}
+.verdict.good{background:var(--accent-soft)}.verdict.mid{background:var(--sun-soft)}.verdict.low{background:var(--iron-soft)}
+.verdict b{font-family:var(--display);font-size:16px}
 .facts{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:4px;font-size:14px}
 @media (prefers-reduced-motion:no-preference){.check,.pill,.drop{transition:background .15s,border-color .15s}}
 @media (max-width:380px){.stats{grid-template-columns:repeat(2,1fr)}.mealbtns{grid-template-columns:repeat(2,1fr)}}
@@ -210,6 +218,14 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-vis
       <div class="scale" id="nausea"></div>
       <label class="f" for="note">Заметка дня
         <textarea id="note" placeholder="Что помогло, что мешало, как спала"></textarea></label>
+    </div>
+
+    <div class="card" id="dayCard">
+      <div class="row"><h2>Итог дня</h2><span class="tag" id="dayTag" hidden>завершён</span></div>
+      <div id="dayPreview" class="hint">Когда всё отметишь, нажми «Завершить день» — покажу, как прошёл день.</div>
+      <div id="daySummary" class="list" hidden></div>
+      <button class="btn" id="dayClose">Завершить день</button>
+      <button class="btn ghost" id="dayReopen" hidden>Открыть день для правок</button>
     </div>
   </section>
 
@@ -483,6 +499,7 @@ function renderToday(){
   else if(si&&si.before) add('shot','До первого укола '+si.before+' дн.','Пока: витамин D и железо, прогулки, вода.');
   else if(si&&si.isShot) add('shot','День укола №'+si.n,'Доза: '+si.dose+'. Место укола меняй.');
   else if(si&&si.since<=3) add('warn','День '+si.since+' после укола','Пик тошноты. Маленькие порции, медленно, без жирного. Больше воды.');
+  if(D.closed) add('shot','День завершён ✓','Итог — внизу страницы. Можно открыть день снова и поправить.');
   if(ti&&ti.day===5) add('warn','Табекс, день 5','С сегодняшнего дня — без сигарет. Отмечай честно, даже если сорвалась.');
 
   // meds
@@ -519,6 +536,7 @@ function renderToday(){
   scale('energy',['1 без сил','2','3','4','5 бодрая'],D,'energy');
   scale('nausea',['нет','слегка','заметно','сильно'],D,'nausea');
   const nEl=$('note'); if(document.activeElement!==nEl) nEl.value=D.note||'';
+  renderDay(D);
 }
 function fmtDate(k){const d=parse(k);return d.getDate()+' '+MON[d.getMonth()]}
 function checkBtn(t,s,tag,on,fn){
@@ -542,6 +560,59 @@ $('toToday').onclick=()=>{cur=key(new Date());closePanel();renderToday()};
 $('cigPlus').onclick=()=>{const D=day(cur);D.cigs=(D.cigs??0)+1;saveDay(cur);renderToday()};
 $('cigMinus').onclick=()=>{const D=day(cur);D.cigs=D.cigs==null?0:Math.max(0,D.cigs-1);saveDay(cur);renderToday()};
 $('note').addEventListener('input',e=>{day(cur).note=e.target.value;saveDay(cur)});
+
+// ---------- итог дня ----------
+function daySummary(k){
+  const D=day(k), T=targets(), si=shotInfo(k), ti=tabexInfo(k), rows=[];
+  // таблетки
+  const medIds=(settings.meds||[]).filter(m=>m.name).map(m=>m.id); if(si&&si.isShot)medIds.push('shot');
+  const tabT=(ti&&ti.times)?ti.times.slice(0,ti.optionalLast?1:ti.times.length):[];
+  const medTotal=medIds.length+tabT.length, medDone=medIds.filter(id=>D.meds[id]).length+tabT.filter(t=>D.tabex[t]).length;
+  if(medTotal)rows.push({ic:'💊',t:'Таблетки и укол',v:medDone+' из '+medTotal,st:medDone===medTotal?2:medDone?1:0,tip:'Поставь напоминание на время приёма или держи таблетки на виду.'});
+  // еда
+  const kc=D.food.reduce((a,f)=>a+(+f.kcal||0),0), pr=D.food.reduce((a,f)=>a+(+f.protein||0),0);
+  if(!D.food.length)rows.push({ic:'🍽',t:'Еда',v:'не записана',st:0,tip:'Запиши хотя бы примерно — без записи не видно, что работает.'});
+  else{
+    if(T.kcal){const st=(T.floor&&kc<T.floor)?0:kc>T.kcal*1.15?1:2;
+      rows.push({ic:'🔥',t:'Калории',v:Math.round(kc)+' / '+T.kcal,sub:st===0?'ниже минимума '+T.floor:st===1?'выше ориентира':'в коридоре',st,tip:st===0?'Слишком мало — добавь белковый перекус, на уколах легко недоесть.':'Чуть больше ориентира — не страшно, завтра по тарелке.'})}
+    else rows.push({ic:'🔥',t:'Калории',v:Math.round(kc)+' ккал',st:2});
+    if(T.protein){const r=pr/T.protein, st=r>=0.9?2:r>=0.6?1:0;
+      rows.push({ic:'🥚',t:'Белок',v:Math.round(pr)+' / '+T.protein+' г',st,tip:'Белок в каждый приём: яйца, творог, курица, рыба, протеин.'})}
+  }
+  // вода
+  const G=T.glasses, w=D.water||0;
+  rows.push({ic:'💧',t:'Вода',v:w+' из '+G+' стаканов',st:w>=G?2:w>=G*0.6?1:0,tip:'Бутылка на столе и стакан после каждого приёма пищи.'});
+  // движение
+  const mins=(D.acts||[]).reduce((a,x)=>a+x.min,0);
+  rows.push({ic:'🚶‍♀️',t:'Движение',v:mins?fmtMin(mins):'нет',st:mins>=30?2:mins>=15?1:0,tip:'Даже 15 минут с собакой в быстром темпе считаются.'});
+  // курение
+  if(settings.quit&&D.cigs!=null)rows.push({ic:'🚭',t:'Сигареты',v:String(D.cigs),st:D.cigs===0?2:ti&&ti.day&&ti.day<5?1:0,tip:'Сорвалась — отметь честно и продолжай, курс рассчитан на это.'});
+  // самочувствие
+  rows.push({ic:'🙂',t:'Самочувствие',v:D.energy!=null?'энергия '+(D.energy+1)+'/5':'не отмечено',st:D.energy!=null?2:0,tip:'Отметь энергию — по ней видно, как организм реагирует на уколы и железо.'});
+  const pts=rows.reduce((a,r)=>a+r.st,0), max=rows.length*2, ratio=max?pts/max:0;
+  const weak=rows.filter(r=>r.st<2&&r.tip).sort((a,b)=>a.st-b.st)[0];
+  const v=ratio>=0.85?{cls:'good',h:'Отличный день 💚',t:'Всё главное сделано. Так и выглядит новый ритм.'}
+    :ratio>=0.55?{cls:'mid',h:'Нормальный день 👍',t:'Большая часть сделана. Завтра подтянем одно: '+(weak?weak.t.toLowerCase():'')+'.'}
+    :{cls:'low',h:'Непростой день',t:'Это один день, а не неделя. Завтра начни с малого: '+(weak?weak.t.toLowerCase():'')+'.'};
+  return {rows,v,weak};
+}
+function renderDay(D){
+  const closed=!!D.closed, S=daySummary(cur);
+  $('dayTag').hidden=!closed;$('dayPreview').hidden=closed;$('daySummary').hidden=!closed;
+  $('dayClose').hidden=closed;$('dayReopen').hidden=!closed;
+  if(!closed)return;
+  const box=$('daySummary');box.innerHTML='';
+  const vd=document.createElement('div');vd.className='verdict '+S.v.cls;vd.innerHTML='<b></b><span></span>';
+  vd.querySelector('b').textContent=S.v.h;vd.querySelector('span').textContent=S.v.t;box.appendChild(vd);
+  S.rows.forEach(r=>{const e=document.createElement('div');e.className='sumrow';
+    e.innerHTML='<span class="ic"></span><span><span class="t"></span><small></small></span><span class="v"></span>';
+    e.querySelector('.ic').textContent=r.st===2?'✅':r.st===1?'🟡':'⭕';
+    e.querySelector('.t').textContent=r.ic+' '+r.t;const sm=e.querySelector('small');sm.textContent=r.sub||'';sm.hidden=!r.sub;
+    e.querySelector('.v').textContent=r.v;box.appendChild(e)});
+  if(S.weak&&S.v.cls!=='good'){const t=document.createElement('div');t.className='hint';t.textContent='Совет на завтра: '+S.weak.tip;box.appendChild(t)}
+}
+$('dayClose').onclick=()=>{const D=day(cur);D.closed=Date.now();saveDay(cur);renderToday();setTimeout(()=>$('dayCard').scrollIntoView({behavior:'smooth',block:'start'}),50)};
+$('dayReopen').onclick=()=>{const D=day(cur);delete D.closed;D.closed=null;saveDay(cur);renderToday()};
 
 // ---------- meds editor ----------
 let medEditing=false;
