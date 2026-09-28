@@ -117,6 +117,8 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-vis
 .sched{width:100%;border-collapse:collapse;font-size:13.5px}
 .sched td{padding:6px 4px;border-top:1px solid var(--line)}
 .sched tr.now td{font-weight:700;color:var(--accent)}
+.card.locked{opacity:.55;filter:saturate(.6)}
+.card.locked *{pointer-events:none}
 .sum{display:flex;flex-direction:column;gap:6px}
 .sumrow{display:grid;grid-template-columns:28px 1fr auto;gap:8px;align-items:center;padding:8px 10px;border-radius:12px;background:var(--surface2)}
 .sumrow .ic{font-size:18px;text-align:center}
@@ -499,7 +501,7 @@ function renderToday(){
   else if(si&&si.before) add('shot','До первого укола '+si.before+' дн.','Пока: витамин D и железо, прогулки, вода.');
   else if(si&&si.isShot) add('shot','День укола №'+si.n,'Доза: '+si.dose+'. Место укола меняй.');
   else if(si&&si.since<=3) add('warn','День '+si.since+' после укола','Пик тошноты. Маленькие порции, медленно, без жирного. Больше воды.');
-  if(D.closed) add('shot','День завершён ✓','Итог — внизу страницы. Можно открыть день снова и поправить.');
+  if(D.closed) add('shot','День завершён ✓','Отметки закрыты. Чтобы что-то поправить — «Открыть день для правок» внизу.');
   if(ti&&ti.day===5) add('warn','Табекс, день 5','С сегодняшнего дня — без сигарет. Отмечай честно, даже если сорвалась.');
 
   // meds
@@ -537,6 +539,8 @@ function renderToday(){
   scale('nausea',['нет','слегка','заметно','сильно'],D,'nausea');
   const nEl=$('note'); if(document.activeElement!==nEl) nEl.value=D.note||'';
   renderDay(D);
+  const lock=!!D.closed; if(lock&&panelMeal)closePanel();
+  document.querySelectorAll('#v-today > .card').forEach(c=>{if(c.id==='dayCard')return;c.classList.toggle('locked',lock);if(lock)c.setAttribute('inert','');else c.removeAttribute('inert')});
 }
 function fmtDate(k){const d=parse(k);return d.getDate()+' '+MON[d.getMonth()]}
 function checkBtn(t,s,tag,on,fn){
