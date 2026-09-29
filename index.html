@@ -113,6 +113,12 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-vis
 .medrow{display:grid;grid-template-columns:110px 1fr;gap:8px;padding:10px;border-radius:12px;background:var(--surface2);border:1px solid var(--line)}
 .medrow .nm{grid-column:1 / -1;display:grid;grid-template-columns:1fr 36px;gap:8px}
 .medrow input{background:var(--surface)}
+.goalrow{display:flex;flex-direction:column;gap:8px;padding:10px;border-radius:12px;background:var(--surface2);border:1px solid var(--line)}
+.goalrow .nm{display:grid;grid-template-columns:1fr 36px;gap:8px}
+.goalrow input{background:var(--surface)}
+.goalrow .types{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.goalrow .tgt{display:grid;grid-template-columns:1fr 110px;gap:8px;align-items:center}
+.pctin{display:flex;align-items:center;gap:6px}.pctin input{width:84px;text-align:center;padding:8px}
 .warnline{font-size:13px;background:var(--sun-soft);color:var(--ink);border-radius:10px;padding:8px 10px}
 .sched{width:100%;border-collapse:collapse;font-size:13.5px}
 .sched td{padding:6px 4px;border-top:1px solid var(--line)}
@@ -188,6 +194,11 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-vis
         <button class="btn" id="foodAdd">+ Сохранить</button>
       </div>
       <div id="foodList" class="list"></div>
+    </div>
+
+    <div class="card" id="goalsCard" hidden>
+      <div class="row"><h2>Мои цели</h2><span class="hint" id="goalsDone"></span></div>
+      <div id="goalsList" class="list"></div>
     </div>
 
     <div class="card">
@@ -288,6 +299,13 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-vis
             <option value="1.55">Прогулки + спорт 3–4 раза</option>
           </select></label>
       </div>
+    </div>
+
+    <div class="card">
+      <div class="row"><h2>Мои цели</h2><span class="hint" id="goalsSaved"></span></div>
+      <div class="hint">Не только вес. Каждая цель появится на «Сегодня» — отмечай её раз в день, а в «Итоге дня» и «Разборе недели» увидишь, как идёт. Цели по весу — выше, в «Мои данные».</div>
+      <div id="goalEditor" class="list"></div>
+      <button class="btn ghost" id="goalAdd">+ Добавить цель</button>
     </div>
 
     <div class="card">
@@ -393,7 +411,7 @@ const fmt1=n=>String(Math.round(n*10)/10).replace('.',',');
 const GLASS=0.3;
 
 const DEFAULT_MEDS=[{id:'m1',name:'Сорбифер Дурулес',time:'08:00',note:'натощак за 30–60 мин до еды, запить водой или апельсиновым соком'},{id:'m2',name:'Витамин D',time:'13:00',note:'1 пшик во время еды, где есть жир'}];
-let settings={startWeight:'',height:'',goal1:'',goal2:'',age:'',act:1.375,onTirz:false,firstShot:'',dose1:'',dose2:'',quit:false,tabexStart:'',tabexTime:'08:00',kcalManual:'',protManual:'',meds:[],
+let settings={startWeight:'',height:'',goal1:'',goal2:'',age:'',act:1.375,onTirz:false,firstShot:'',dose1:'',dose2:'',quit:false,tabexStart:'',tabexTime:'08:00',kcalManual:'',protManual:'',meds:[],goals:[],
   notify:{on:false,breakfast:'09:30',lunch:'14:00',dinner:'19:00',waterOn:true,waterEvery:120,waterFrom:'09:00',waterTo:'21:00',activity:'22:00',feeling:'22:30',measDay:1,measTime:'10:00',shotTime:'10:00'}};
 const NOTIFY_DEFAULT=JSON.parse(JSON.stringify(settings.notify));
 let days={}, weeks={};
@@ -442,7 +460,7 @@ function saveWeek(k){
 }
 function saveSettingsNow(){lsSet();writeDoc('settings/main',()=>JSON.parse(JSON.stringify(settings)))}
 function day(k){if(!days[k])days[k]={meds:{},food:[],acts:[],water:0,cigs:null,energy:null,nausea:null,weight:null,note:'',tabex:{}};const D=days[k];
-  if(!D.food)D.food=[]; if(!D.meds)D.meds={}; if(!D.tabex||typeof D.tabex!=='object')D.tabex={};
+  if(!D.food)D.food=[]; if(!D.meds)D.meds={}; if(!D.tabex||typeof D.tabex!=='object')D.tabex={}; if(!D.goals||typeof D.goals!=='object')D.goals={};
   if(!D.acts){D.acts=[];if(D.walk>0)D.acts.push({type:'Прогулка с собакой',min:D.walk})}
   return D}
 
@@ -527,6 +545,7 @@ function renderToday(){
   }
 
   renderFood(D);
+  renderGoals(D);
   renderWater(D);
   renderActs(D);
 
@@ -591,6 +610,9 @@ function daySummary(k){
   rows.push({ic:'🚶‍♀️',t:'Движение',v:mins?fmtMin(mins):'нет',st:mins>=30?2:mins>=15?1:0,tip:'Даже 15 минут с собакой в быстром темпе считаются.'});
   // курение
   if(settings.quit&&D.cigs!=null)rows.push({ic:'🚭',t:'Сигареты',v:String(D.cigs),st:D.cigs===0?2:ti&&ti.day&&ti.day<5?1:0,tip:'Сорвалась — отметь честно и продолжай, курс рассчитан на это.'});
+  // мои цели
+  activeGoals().forEach(g=>{const r=goalState(g,D.goals[g.id]);
+    rows.push({ic:'🎯',t:g.name.trim(),v:r.label,st:r.st,tip:'Привяжи «'+g.name.trim()+'» к тому, что и так делаешь каждый день: к завтраку, прогулке, дороге на работу.'})});
   // самочувствие
   rows.push({ic:'🙂',t:'Самочувствие',v:D.energy!=null?'энергия '+(D.energy+1)+'/5':'не отмечено',st:D.energy!=null?2:0,tip:'Отметь энергию — по ней видно, как организм реагирует на уколы и железо.'});
   const pts=rows.reduce((a,r)=>a+r.st,0), max=rows.length*2, ratio=max?pts/max:0;
@@ -617,6 +639,74 @@ function renderDay(D){
 }
 $('dayClose').onclick=()=>{const D=day(cur);D.closed=Date.now();saveDay(cur);renderToday();setTimeout(()=>$('dayCard').scrollIntoView({behavior:'smooth',block:'start'}),50)};
 $('dayReopen').onclick=()=>{const D=day(cur);delete D.closed;D.closed=null;saveDay(cur);renderToday()};
+
+// ---------- мои цели ----------
+const GTYPES=[['yesno','Да / нет'],['pct','%'],['count','Шт']];
+const GHINT={yesno:'На «Сегодня» — галочка: сделала или нет.',pct:'На «Сегодня» — вводишь процент за день. Ниже — сколько % считать выполнением.',count:'На «Сегодня» — счётчик + и −. Ниже — сколько раз в день нужно.'};
+const activeGoals=()=>(settings.goals||[]).filter(g=>(g.name||'').trim());
+function goalState(g,v){
+  if(g.type==='count'){const t=+g.target||0,n=+v||0;
+    return {st:t?(n>=t?2:n>0?1:0):(n>0?2:0),label:t?(n+' из '+t+' шт'):(n+' шт')}}
+  if(g.type==='pct'){const t=+g.target||100;if(v==null||v==='')return {st:0,label:'не отмечено'};
+    return {st:v>=t?2:v>=t/2?1:0,label:v+'%'+(g.target?' / '+t+'%':'')}}
+  return {st:v?2:0,label:v?'да':'нет'};
+}
+function renderGoals(D){
+  const gs=activeGoals();$('goalsCard').hidden=!gs.length;if(!gs.length)return;
+  const box=$('goalsList');box.innerHTML='';
+  const done=gs.filter(g=>goalState(g,D.goals[g.id]).st===2).length;$('goalsDone').textContent=done+' из '+gs.length;
+  gs.forEach(g=>{
+    const nm=g.name.trim(), v=D.goals[g.id];
+    if(g.type==='count'||g.type==='pct'){
+      const r=document.createElement('div');r.className='item';
+      r.innerHTML='<span class="t"><span></span><small></small></span>';
+      r.querySelector('.t span').textContent=nm;const sm=r.querySelector('small');
+      const sub=()=>{const st=goalState(g,D.goals[g.id]).st;sm.textContent=(g.type==='count'?(g.target?'цель: '+g.target+' шт':'сколько раз за день'):('цель: '+(+g.target||100)+'%'))+(st===2?' · выполнено ✓':'')};sub();
+      if(g.type==='count'){
+        const c=document.createElement('div');c.className='counter';
+        c.innerHTML='<button aria-label="Меньше">−</button><span class="v"></span><button aria-label="Больше">+</button>';
+        const [mi,pl]=c.querySelectorAll('button');c.querySelector('.v').textContent=v?v:'0';
+        mi.onclick=()=>{D.goals[g.id]=Math.max(0,(+D.goals[g.id]||0)-1);saveDay(cur);renderToday()};
+        pl.onclick=()=>{D.goals[g.id]=(+D.goals[g.id]||0)+1;saveDay(cur);renderToday()};
+        r.appendChild(c);
+      }else{
+        const w=document.createElement('label');w.className='pctin';
+        w.innerHTML='<input type="number" inputmode="numeric" min="0" max="100" placeholder="—"><span>%</span>';
+        const inp=w.querySelector('input');inp.setAttribute('aria-label',nm+', процент');inp.value=v??'';
+        inp.oninput=()=>{const x=parseFloat(inp.value);D.goals[g.id]=isFinite(x)?Math.max(0,Math.min(100,Math.round(x))):null;
+          saveDay(cur);sub();$('goalsDone').textContent=gs.filter(z=>goalState(z,D.goals[z.id]).st===2).length+' из '+gs.length};
+        r.appendChild(w);
+      }
+      box.appendChild(r);
+    }else box.appendChild(checkBtn(nm,'','',!!v,()=>{D.goals[g.id]=!D.goals[g.id];saveDay(cur);renderToday()}));
+  });
+}
+let gTimer=null;
+function saveGoals(){$('goalsSaved').textContent='сохраняю…';clearTimeout(gTimer);gTimer=setTimeout(()=>{saveSettingsNow();$('goalsSaved').textContent='сохранено'},700)}
+function renderGoalEditor(force){
+  const ed=$('goalEditor');if(!force&&ed.contains(document.activeElement))return;
+  ed.innerHTML='';settings.goals=settings.goals||[];
+  if(!settings.goals.length){const e=document.createElement('div');e.className='hint';e.textContent='Пока целей нет. Нажми «+ Добавить цель».';ed.appendChild(e)}
+  settings.goals.forEach((g,i)=>{
+    const r=document.createElement('div');r.className='goalrow';
+    r.innerHTML='<div class="nm"><input type="text" placeholder="Название цели" maxlength="80"><button class="x" aria-label="Удалить цель">×</button></div>'+
+      '<div class="lbl">Как отмечать</div><div class="types"></div><div class="hint"></div>'+
+      '<label class="tgt"><span class="lbl"></span><input type="number" inputmode="numeric" min="1"></label>';
+    const n=r.querySelector('.nm input');n.id='gn_'+g.id;n.value=g.name||'';n.setAttribute('aria-label','Название цели');
+    n.oninput=e=>{g.name=e.target.value;saveGoals()};
+    r.querySelector('.x').onclick=()=>{settings.goals.splice(i,1);renderGoalEditor(true);saveGoals()};
+    const ty=r.querySelector('.types');
+    GTYPES.forEach(([t,l])=>{const b=document.createElement('button');b.className='pill';b.textContent=l;b.setAttribute('aria-pressed',g.type===t);
+      b.onclick=()=>{if(g.type!==t){g.type=t;g.target=t==='pct'?100:t==='count'?1:''}renderGoalEditor(true);saveGoals()};ty.appendChild(b)});
+    r.querySelector('.hint').textContent=GHINT[g.type]||'';
+    const tgl=r.querySelector('.tgt');tgl.hidden=g.type==='yesno';
+    tgl.querySelector('span').textContent=g.type==='pct'?'Выполнено, если не меньше, %':'Сколько раз в день, шт';
+    const ti=tgl.querySelector('input');ti.value=g.target??'';ti.max=g.type==='pct'?100:'';ti.placeholder=g.type==='pct'?'100':'1';
+    ti.oninput=e=>{const x=parseFloat(e.target.value);g.target=isFinite(x)?(g.type==='pct'?Math.min(100,Math.max(1,x)):Math.max(1,Math.round(x))):'';saveGoals()};
+    ed.appendChild(r)});
+}
+$('goalAdd').onclick=()=>{settings.goals=settings.goals||[];const g={id:'g'+Date.now().toString(36),name:'',type:'yesno',target:''};settings.goals.push(g);
+  renderGoalEditor(true);const el=$('gn_'+g.id);if(el)el.focus();saveGoals()};
 
 // ---------- meds editor ----------
 let medEditing=false;
@@ -837,6 +927,8 @@ function renderReview(){
   if(en.length)facts.push('Энергия в среднем '+fmt1(avg(en))+'/5.');
   if(nz)facts.push('Заметная тошнота: '+nz+' дн.'+(nz>=2?' Если подряд — напиши врачу.':''));
   if(wd)facts.push('Вода: в среднем '+fmt1(water/wd*GLASS)+' л в день.');
+  activeGoals().forEach(g=>{let ok=0;for(let i=0;i<7;i++){const x=days[addDays(wk,i)];if(x&&x.goals&&goalState(g,x.goals[g.id]).st===2)ok++}
+    facts.push('Цель «'+g.name.trim()+'»: выполнена '+ok+' из 7 дней.')});
   if(w0!=null&&w1!=null&&w0!==w1)facts.push('Вес за неделю: '+(w1<w0?'−':'+')+fmt1(Math.abs(w1-w0))+' кг.');
   const ul=$('wkFacts');ul.innerHTML='';facts.forEach(t=>{const li=document.createElement('li');li.textContent=t;ul.appendChild(li)});
   const W=weeks[wk]||{};
@@ -868,7 +960,7 @@ function renderCalc(){
 const sMap={sAge:'age',sHeight:'height',sStart:'startWeight',sGoal1:'goal1',sGoal2:'goal2',sAct:'act',sShot:'firstShot',sDose1:'dose1',sDose2:'dose2',sTabex:'tabexStart',sTabexTime:'tabexTime',sKcalM:'kcalManual',sProtM:'protManual'};
 const NUMS=['age','height','startWeight','goal1','goal2','act','kcalManual','protManual'];
 function fillSettings(){for(const [id,f] of Object.entries(sMap)){const el=$(id);if(document.activeElement!==el)el.value=settings[f]??''}
-  if(!$('sAct').value)$('sAct').value='1.375'; fillNotify(); renderCalc()}
+  if(!$('sAct').value)$('sAct').value='1.375'; fillNotify(); renderGoalEditor(); renderCalc()}
 let sTimer=null;
 function onSetting(){
   for(const [id,f] of Object.entries(sMap)){const v=$(id).value;settings[f]=NUMS.includes(f)?(v===''?'':parseFloat(v)):v}
