@@ -116,7 +116,9 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-vis
 .goalrow{display:flex;flex-direction:column;gap:8px;padding:10px;border-radius:12px;background:var(--surface2);border:1px solid var(--line)}
 .goalrow .nm{display:grid;grid-template-columns:1fr 36px;gap:8px}
 .goalrow input{background:var(--surface)}
-.goalrow .types{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.goalrow .types{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.goalrow .types .pill{padding:8px 2px;white-space:nowrap}
+.goalscale{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
 .goalrow .tgt{display:grid;grid-template-columns:1fr 110px;gap:8px;align-items:center}
 .pctin{display:flex;align-items:center;gap:6px}.pctin input{width:84px;text-align:center;padding:8px}
 .warnline{font-size:13px;background:var(--sun-soft);color:var(--ink);border-radius:10px;padding:8px 10px}
@@ -641,12 +643,14 @@ $('dayClose').onclick=()=>{const D=day(cur);D.closed=Date.now();saveDay(cur);ren
 $('dayReopen').onclick=()=>{const D=day(cur);delete D.closed;D.closed=null;saveDay(cur);renderToday()};
 
 // ---------- мои цели ----------
-const GTYPES=[['yesno','Да / нет'],['pct','%'],['count','Шт']];
-const GHINT={yesno:'На «Сегодня» — галочка: сделала или нет.',pct:'На «Сегодня» — вводишь процент за день. Ниже — сколько % считать выполнением.',count:'На «Сегодня» — счётчик + и −. Ниже — сколько раз в день нужно.'};
+const GTYPES=[['yesno','Да/нет'],['pct','%'],['count','Шт'],['scale','1–5']];
+const GHINT={yesno:'На «Сегодня» — галочка: сделала или нет.',pct:'На «Сегодня» — вводишь процент за день. Ниже — сколько % считать выполнением.',count:'На «Сегодня» — счётчик + и −. Ниже — сколько раз в день нужно.',scale:'На «Сегодня» — оценка от 1 до 5. Ниже — с какой оценки считать выполнением.'};
 const activeGoals=()=>(settings.goals||[]).filter(g=>(g.name||'').trim());
 function goalState(g,v){
   if(g.type==='count'){const t=+g.target||0,n=+v||0;
     return {st:t?(n>=t?2:n>0?1:0):(n>0?2:0),label:t?(n+' из '+t+' шт'):(n+' шт')}}
+  if(g.type==='scale'){const t=+g.target||4;if(v==null||v==='')return {st:0,label:'не отмечено'};
+    return {st:v>=t?2:v>=t-1?1:0,label:v+' из 5'}}
   if(g.type==='pct'){const t=+g.target||100;if(v==null||v==='')return {st:0,label:'не отмечено'};
     return {st:v>=t?2:v>=t/2?1:0,label:v+'%'+(g.target?' / '+t+'%':'')}}
   return {st:v?2:0,label:v?'да':'нет'};
@@ -657,7 +661,16 @@ function renderGoals(D){
   const done=gs.filter(g=>goalState(g,D.goals[g.id]).st===2).length;$('goalsDone').textContent=done+' из '+gs.length;
   gs.forEach(g=>{
     const nm=g.name.trim(), v=D.goals[g.id];
-    if(g.type==='count'||g.type==='pct'){
+    if(g.type==='scale'){
+      const r=document.createElement('div');r.className='item';r.style.flexDirection='column';r.style.alignItems='stretch';
+      r.innerHTML='<span class="t"><span></span><small></small></span><div class="goalscale"></div>';
+      r.querySelector('.t span').textContent=nm;
+      const t=+g.target||4;r.querySelector('small').textContent='цель: от '+t+' из 5'+(v>=t?' · выполнено ✓':'');
+      const sc=r.querySelector('.goalscale');
+      for(let i=1;i<=5;i++){const b=document.createElement('button');b.className='pill';b.textContent=i;b.setAttribute('aria-pressed',v===i);b.setAttribute('aria-label',nm+': '+i+' из 5');
+        b.onclick=()=>{D.goals[g.id]=D.goals[g.id]===i?null:i;saveDay(cur);renderToday()};sc.appendChild(b)}
+      box.appendChild(r);
+    }else if(g.type==='count'||g.type==='pct'){
       const r=document.createElement('div');r.className='item';
       r.innerHTML='<span class="t"><span></span><small></small></span>';
       r.querySelector('.t span').textContent=nm;const sm=r.querySelector('small');
@@ -697,12 +710,12 @@ function renderGoalEditor(force){
     r.querySelector('.x').onclick=()=>{settings.goals.splice(i,1);renderGoalEditor(true);saveGoals()};
     const ty=r.querySelector('.types');
     GTYPES.forEach(([t,l])=>{const b=document.createElement('button');b.className='pill';b.textContent=l;b.setAttribute('aria-pressed',g.type===t);
-      b.onclick=()=>{if(g.type!==t){g.type=t;g.target=t==='pct'?100:t==='count'?1:''}renderGoalEditor(true);saveGoals()};ty.appendChild(b)});
+      b.onclick=()=>{if(g.type!==t){g.type=t;g.target=t==='pct'?100:t==='count'?1:t==='scale'?4:''}renderGoalEditor(true);saveGoals()};ty.appendChild(b)});
     r.querySelector('.hint').textContent=GHINT[g.type]||'';
     const tgl=r.querySelector('.tgt');tgl.hidden=g.type==='yesno';
-    tgl.querySelector('span').textContent=g.type==='pct'?'Выполнено, если не меньше, %':'Сколько раз в день, шт';
-    const ti=tgl.querySelector('input');ti.value=g.target??'';ti.max=g.type==='pct'?100:'';ti.placeholder=g.type==='pct'?'100':'1';
-    ti.oninput=e=>{const x=parseFloat(e.target.value);g.target=isFinite(x)?(g.type==='pct'?Math.min(100,Math.max(1,x)):Math.max(1,Math.round(x))):'';saveGoals()};
+    tgl.querySelector('span').textContent=g.type==='pct'?'Выполнено, если не меньше, %':g.type==='scale'?'Выполнено, если оценка не ниже':'Сколько раз в день, шт';
+    const ti=tgl.querySelector('input');ti.value=g.target??'';ti.max=g.type==='pct'?100:g.type==='scale'?5:'';ti.placeholder=g.type==='pct'?'100':g.type==='scale'?'4':'1';
+    ti.oninput=e=>{const x=parseFloat(e.target.value);g.target=isFinite(x)?(g.type==='pct'?Math.min(100,Math.max(1,x)):g.type==='scale'?Math.min(5,Math.max(1,Math.round(x))):Math.max(1,Math.round(x))):'';saveGoals()};
     ed.appendChild(r)});
 }
 $('goalAdd').onclick=()=>{settings.goals=settings.goals||[];const g={id:'g'+Date.now().toString(36),name:'',type:'yesno',target:''};settings.goals.push(g);
