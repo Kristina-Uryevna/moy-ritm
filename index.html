@@ -1256,7 +1256,7 @@ const lifeReady=()=>!!(life.wake&&life.sleep);
 let planSig='',planCache=null;
 function weekPlan(){
   const named=habits.filter(h=>(h.name||'').trim());
-  const sig=JSON.stringify([life,named.map(h=>[h.id,h.name,h.freq,h.dur,h.when])]);
+  const sig=JSON.stringify([life,named.map(h=>[h.id,h.name,h.freq,h.dur,h.when,h.mode,h.slots])]);
   if(sig===planSig&&planCache)return planCache;
   const wake=toMin(life.wake||'07:00');let sleep=toMin(life.sleep||'23:00');if(sleep<=wake)sleep+=1440;
   const len=Math.max(1,Math.floor((sleep-wake)/SL));
@@ -1275,7 +1275,19 @@ function weekPlan(){
   const fit=(occ,n,a,b)=>{const s0=Math.max(0,Math.ceil((a-wake)/SL)),e=Math.min(len,Math.floor((b-wake)/SL));
     for(let i=s0;i+n<=e;i++){let ok=true;for(let j=i;j<i+n;j++)if(occ[j]){ok=false;break}if(ok)return i}return -1};
   const stats={};
-  named.forEach(h=>{
+  // хотелки с точным временем ставим первыми — остальные подстроятся вокруг них
+  named.filter(isFixedHab).forEach(h=>{
+    const hi=habits.indexOf(h),dur=Math.max(SL,Math.ceil((+h.dur||0)/SL)*SL);let placed=0,off=0;
+    habSlots(h).forEach(([d,t])=>{
+      const X=D[d],from=toMin(t),to=from+dur;
+      const hit=X.items.filter(it=>it.kind!=='mark'&&it.from<to&&it.to>from).map(it=>it.name);
+      const out=from<wake||to>sleep;
+      mark(X.occ,from,to);X.load+=dur;
+      X.items.push({id:'h_'+h.id,kind:'habit',hi,name:h.name.trim(),from,to,fixed:true,clash:hit.length?'пересекается: '+hit.join(', '):out?'вне режима дня':'',min:(h.min||'').trim()});
+      placed++;if(hit.length||out)off++});
+    const need=placed;stats[h.id]={need,placed,off,dur,minutes:need*dur,placedMin:placed*dur,fixed:true};
+  });
+  named.filter(h=>!isFixedHab(h)).forEach(h=>{
     const hi=habits.indexOf(h);
     const need=Math.min(7,Math.max(0,Math.floor(+h.freq||0))),dur=Math.max(SL,Math.ceil((+h.dur||0)/SL)*SL),n=dur/SL;
     const used=new Set();let placed=0,off=0;
@@ -1301,6 +1313,8 @@ function weekPlan(){
   planCache={wake,sleep,days:D,stats,free:sum(x=>x.free),cap:sum(x=>x.cap),want,got};planSig=sig;
   return planCache;
 }
+function isFixedHab(h){return h.mode==='fixed'}
+function habSlots(h){const s=h.slots||{};return Object.keys(s).map(Number).filter(d=>d>=0&&d<7&&/^\d\d:\d\d$/.test(s[d]||'')).sort((a,b)=>a-b).map(d=>[d,s[d]])}
 const planFor=k=>weekPlan().days[wdi(k)].items;
 const checkable=it=>it.kind!=='work';
 function dayIds(k){const D=days[k];return (D&&Array.isArray(D.lplan)&&D.lplan.length)?D.lplan:planFor(k).filter(checkable).map(i=>i.id)}
@@ -1344,7 +1358,7 @@ function renderLifeDay(){
     const r=document.createElement(can?'button':'div');r.className='lrow'+(can?'':' fixedrow');
     if(can)r.setAttribute('aria-pressed',on);
     if(it.kind==='habit')r.style.setProperty('--hc',hcol(it.hi));else if(it.kind!=='work')r.style.setProperty('--hc','var(--life)');
-    const sub=it.kind==='habit'?(it.off?'не нашлось удобного времени':(it.min?'минимум: '+it.min:'')):it.kind==='work'?'':'';
+    const sub=it.kind==='habit'?(it.fixed?(it.clash||(it.min?'минимум: '+it.min:'')):it.off?'не нашлось удобного времени':(it.min?'минимум: '+it.min:'')):it.kind==='work'?'':'';
     r.innerHTML='<span class="tm"></span><span class="nm"><b><i></i><span></span></b><small></small></span><span class="box">✓</span>';
     const tm=r.querySelector('.tm');tm.textContent=toHM(it.from);
     if(it.to>it.from){const s2=document.createElement('small');s2.textContent='до '+toHM(it.to);tm.append(s2)}
@@ -1405,8 +1419,9 @@ function renderBalance(){
   else if(!habits.length)m.textContent='В неделе свободно '+hrs(P.cap)+' ч без учёта запаса. Добавь первую хотелку — покажу, куда она встанет.';
   else m.textContent='Всё влезает. Осталось ещё '+hrs(left)+' ч в неделю — это примерно '+Math.floor(left/30)+' раз по 30 минут.';
 }
-const habSum=h=>{const f=+h.freq||0;return (f?f+' '+(f===1?'раз':f<5?'раза':'раз')+' в неделю':'частота не задана')+' · '+(+h.dur||0)+' мин · '+LWHEN_T[h.when||'any']};
-function habStatus(h){const s=weekPlan().stats[h.id];if(!(h.name||'').trim())return ['mid','без названия'];if(!s||!s.need)return ['mid','не задано'];
+const habSum=h=>{if(isFixedHab(h)){const sl=habSlots(h);return (sl.length?sl.map(([d,t])=>LD[d]+' '+t).join(', '):'дни не выбраны')+' · '+fmtMin(+h.dur||0)}const f=+h.freq||0;return (f?f+' '+(f===1?'раз':f<5?'раза':'раз')+' в неделю':'частота не задана')+' · '+(+h.dur||0)+' мин · '+LWHEN_T[h.when||'any']};
+function habStatus(h){const s=weekPlan().stats[h.id];if(!(h.name||'').trim())return ['mid','без названия'];if(!s||!s.need)return ['mid',isFixedHab(h)?'выбери дни':'не задано'];
+  if(s.fixed)return s.off?['mid',s.placed+' из '+s.need+', есть пересечения']:['ok',s.placed+' из '+s.need+', точное время'];
   if(s.placed<s.need)return ['bad',s.placed+' из '+s.need];if(s.off)return ['mid',s.placed+' из '+s.need+', не в своё время'];return ['ok',s.placed+' из '+s.need]}
 let hTimer=null;
 function saveHabits(){$('habSaved').textContent='сохраняю…';clearTimeout(hTimer);hTimer=setTimeout(()=>{writeDoc('life/habits',()=>({list:habits}));pushLifePlan();$('habSaved').textContent='сохранено'},700)}
@@ -1438,7 +1453,7 @@ function habForm(h){
   const pills=(l,opts,k,fmtv)=>{const w=document.createElement('div');w.className='list';w.style.gap='6px';const lb=document.createElement('div');lb.className='lbl';lb.textContent=l;w.appendChild(lb);
     const ch=document.createElement('div');ch.className='chips';
     opts.forEach(([v,t])=>{const b=document.createElement('button');b.className='pill';b.textContent=t;b.setAttribute('aria-pressed',String(h[k])===String(v));
-      b.onclick=()=>{h[k]=typeof v==='number'?v:v;saveHabits();renderLife()};ch.appendChild(b)});w.appendChild(ch);f.appendChild(w);return ch};
+      b.onclick=()=>{if(k==='mode'&&v==='fixed'&&h.mode!=='fixed'&&!habSlots(h).length){const s={};weekPlan().days.forEach((x,d)=>x.items.forEach(it=>{if(it.id==='h_'+h.id)s[d]=toHM(it.from)}));h.slots=s;h.freq=Object.keys(s).length}h[k]=v;saveHabits();renderLife()};ch.appendChild(b)});w.appendChild(ch);f.appendChild(w);return ch};
   txt('name','Что хочу внедрить','Спорт, книги, фото…');
   txt('why','Зачем мне это','Одна фраза: что изменится');
   txt('start','Что нужно, чтобы начать','Каждый шаг с новой строки: купить кроссовки, выбрать зал…',true);
@@ -1449,9 +1464,30 @@ function habForm(h){
       lab.innerHTML='<input type="checkbox"><span></span>';const cb=lab.querySelector('input');cb.id='hs_'+h.id+'_'+j;cb.checked=!!h.done[x];lab.querySelector('span').textContent=x;
       cb.onchange=()=>{h.done[x]=cb.checked;if(!cb.checked)delete h.done[x];saveHabits();renderSteps()};steps.appendChild(lab)})}
   renderSteps();
-  pills('Сколько раз в неделю',[1,2,3,4,5,6,7].map(n=>[n,String(n)]),'freq');
-  pills('Сколько минут за раз',[15,20,30,45,60,90,120].map(n=>[n,fmtMin(n)]),'dur');
-  pills('Когда удобнее',LWHEN,'when');
+  if(!h.mode)h.mode='auto';
+  pills('Как планировать',[['auto','Подбери время сама'],['fixed','Точные дни и время']],'mode');
+  if(isFixedHab(h)){
+    h.slots=h.slots||{};
+    const w=document.createElement('div');w.className='list';w.style.gap='6px';
+    const lb=document.createElement('div');lb.className='lbl';lb.textContent='В какие дни';w.appendChild(lb);
+    const dd=document.createElement('div');dd.className='days7';
+    LD.forEach((d,j)=>{const p=document.createElement('button');p.className='pill';p.textContent=d;p.setAttribute('aria-pressed',h.slots[j]!=null);
+      p.onclick=()=>{if(h.slots[j]!=null)delete h.slots[j];else{const prev=habSlots(h);h.slots[j]=prev.length?prev[prev.length-1][1]:'19:00'}
+        h.freq=habSlots(h).length;saveHabits();renderLife()};dd.appendChild(p)});
+    w.appendChild(dd);
+    const sl=habSlots(h);
+    if(sl.length){const l2=document.createElement('div');l2.className='lbl';l2.textContent='Во сколько начинать';w.appendChild(l2)}
+    sl.forEach(([d,t])=>{const r=document.createElement('label');r.className='grid2';r.style.alignItems='center';r.htmlFor='hbt_'+h.id+'_'+d;
+      r.innerHTML='<span></span><input type="time">';r.firstChild.textContent=['Понедельник','Вторник','Среда','Четверг','Пятница','Суббота','Воскресенье'][d];
+      const e=r.querySelector('input');e.id='hbt_'+h.id+'_'+d;e.value=t;
+      e.oninput=()=>{if(/^\d\d:\d\d$/.test(e.value)){h.slots[d]=e.value;saveHabits();renderLife()}};w.appendChild(r)});
+    if(!sl.length){const hn=document.createElement('div');hn.className='hint';hn.textContent='Нажми на дни, когда хочешь этим заниматься, — у каждого дня можно поставить своё время.';w.appendChild(hn)}
+    f.appendChild(w);
+  }else{
+    pills('Сколько раз в неделю',[1,2,3,4,5,6,7].map(n=>[n,String(n)]),'freq');
+  }
+  pills('Сколько минут за раз',[15,20,30,45,60,90,120,180].map(n=>[n,fmtMin(n)]),'dur');
+  if(!isFixedHab(h))pills('Когда удобнее',LWHEN,'when');
   txt('min','Минимум на плохой день','Чтобы не бросить совсем: 5 страниц, 15 минут зарядки');
   txt('combine','С чем можно совместить','Прогулка с собакой + фото');
   const del=document.createElement('button');del.className='btn ghost';del.textContent=habDelArm===h.id?'Точно удалить? Нажми ещё раз':'Удалить хотелку';
@@ -1460,7 +1496,7 @@ function habForm(h){
   f.appendChild(del);
   return f;
 }
-$('habAdd').onclick=()=>{const h={id:'h'+Date.now().toString(36),name:'',why:'',start:'',freq:3,dur:30,when:'any',min:'',combine:'',done:{}};habits.push(h);openHab=h.id;saveHabits();renderLife();
+$('habAdd').onclick=()=>{const h={id:'h'+Date.now().toString(36),name:'',why:'',start:'',freq:3,dur:30,when:'any',mode:'auto',slots:{},min:'',combine:'',done:{}};habits.push(h);openHab=h.id;saveHabits();renderLife();
   setTimeout(()=>{const el=$('hb_name_'+h.id);if(el){el.focus();el.scrollIntoView({block:'center'})}},30)};
 
 // настройки режима
@@ -1539,7 +1575,7 @@ function renderLifeStats(){
   const worst=rows.find(p=>p.plan>=3&&p.r<0.5);let t='';
   if(worst){const nmx=itemName(worst.id);
     if(worst.id.startsWith('h_')){const h=habits.find(x=>'h_'+x.id===worst.id)||{};
-      t='«'+nmx+'» срывается чаще всего: '+worst.done+' из '+worst.plan+'. '+((h.min||'').trim()?'Попробуй пару недель делать минимум — «'+h.min.trim()+'» — и отмечать его как выполнено.':'Впиши для неё «минимум на плохой день» — маленькую версию, которую реально сделать.')+' Или поменяй время: сейчас — '+LWHEN_T[h.when||'any']+'.'}
+      t='«'+nmx+'» срывается чаще всего: '+worst.done+' из '+worst.plan+'. '+((h.min||'').trim()?'Попробуй пару недель делать минимум — «'+h.min.trim()+'» — и отмечать его как выполнено.':'Впиши для неё «минимум на плохой день» — маленькую версию, которую реально сделать.')+' Или поменяй время: сейчас — '+(isFixedHab(h)?habSlots(h).map(([d,t])=>LD[d]+' '+t).join(', '):LWHEN_T[h.when||'any'])+'.'}
     else if(worst.id==='wake'||worst.id==='sleep')t='«'+nmx+'» не получается '+(worst.plan-worst.done)+' раз из '+worst.plan+'. Может, время нереальное — сдвинь его на 30 минут в «Настройках» и посмотри неделю.';
     else t='«'+nmx+'» выпадает '+(worst.plan-worst.done)+' раз из '+worst.plan+'. Проверь время в «Настройках» — возможно, на деле оно другое. Или ты просто забываешь отмечать.'}
   else if(tot>=10&&dn/tot>=0.8)t='Всё стабильно: больше 80% дел сделано. Можно добавить следующую хотелку.';
